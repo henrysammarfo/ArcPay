@@ -1,0 +1,23 @@
+{
+  "name": "@arcpay/cli",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ArcPay CLI commands for the Zerion CLI fork.",
+  "type": "module",
+  "bin": {
+    "arcpay": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@arcpay/sdk": "0.1.0",
+    "commander": "^14.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.4"
+  }
+}

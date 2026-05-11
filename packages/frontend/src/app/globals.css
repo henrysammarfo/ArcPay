@@ -1,0 +1,222 @@
+@import "tailwindcss";
+@source ".";
+@source "../product-ui";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ArcPay design system
+ * - Marketing: black canvas, orange/gold accents, cinematic
+ * - App: warm off-white, dark navy panels, same accents
+ * Single typography family: Inter (loaded in __root via <link>)
+ */
+
+@theme inline {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--background);
+  --color-surface-dark: var(--surface-dark);
+  --color-surface-dark-foreground: var(--surface-dark-foreground);
+  --color-surface-app: var(--surface-app);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+:root {
+  --radius: 0.875rem;
+
+  /* App canvas — warm off-white */
+  --background: oklch(0.975 0.005 80);
+  --foreground: oklch(0.18 0.015 250);
+  --surface-app: oklch(0.975 0.005 80);
+  --surface-elevated: oklch(1 0 0);
+
+  /* Dark navy/charcoal panels */
+  --surface-dark: oklch(0.19 0.018 250);
+  --surface-dark-foreground: oklch(0.97 0.005 80);
+
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.18 0.015 250);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.18 0.015 250);
+
+  /* Solana orange */
+  --primary: oklch(0.71 0.18 47);
+  --primary-foreground: oklch(0.16 0.01 250);
+
+  --secondary: oklch(0.95 0.008 80);
+  --secondary-foreground: oklch(0.22 0.015 250);
+
+  --muted: oklch(0.95 0.008 80);
+  --muted-foreground: oklch(0.5 0.018 250);
+
+  /* Warm gold accent */
+  --accent: oklch(0.85 0.13 85);
+  --accent-foreground: oklch(0.18 0.015 250);
+
+  --destructive: oklch(0.6 0.22 28);
+  --destructive-foreground: oklch(0.98 0 0);
+
+  --success: oklch(0.65 0.16 155);
+  --success-foreground: oklch(0.16 0.01 250);
+
+  --warning: oklch(0.78 0.15 75);
+  --warning-foreground: oklch(0.18 0.015 250);
+
+  --border: oklch(0.9 0.01 80);
+  --input: oklch(0.92 0.01 80);
+  --ring: oklch(0.71 0.18 47);
+
+  --chart-1: oklch(0.71 0.18 47);
+  --chart-2: oklch(0.85 0.13 85);
+  --chart-3: oklch(0.55 0.13 250);
+  --chart-4: oklch(0.65 0.16 155);
+  --chart-5: oklch(0.6 0.22 28);
+
+  --sidebar: oklch(0.975 0.005 80);
+  --sidebar-foreground: oklch(0.18 0.015 250);
+  --sidebar-primary: oklch(0.71 0.18 47);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.95 0.008 80);
+  --sidebar-accent-foreground: oklch(0.22 0.015 250);
+  --sidebar-border: oklch(0.9 0.01 80);
+  --sidebar-ring: oklch(0.71 0.18 47);
+}
+
+.dark {
+  --background: oklch(0.14 0.01 250);
+  --foreground: oklch(0.97 0.005 80);
+  --surface-app: oklch(0.14 0.01 250);
+  --surface-elevated: oklch(0.19 0.018 250);
+  --card: oklch(0.19 0.018 250);
+  --card-foreground: oklch(0.97 0.005 80);
+  --popover: oklch(0.19 0.018 250);
+  --popover-foreground: oklch(0.97 0.005 80);
+  --primary: oklch(0.74 0.18 47);
+  --primary-foreground: oklch(0.14 0.01 250);
+  --secondary: oklch(0.24 0.018 250);
+  --secondary-foreground: oklch(0.97 0.005 80);
+  --muted: oklch(0.24 0.018 250);
+  --muted-foreground: oklch(0.7 0.015 250);
+  --accent: oklch(0.85 0.13 85);
+  --accent-foreground: oklch(0.16 0.01 250);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 12%);
+  --ring: oklch(0.74 0.18 47);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html, body {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+  }
+}
+
+/* Animated CTA gradient (orange/gold/charcoal recolor of the Kresna-style blobs) */
+@property --ap-x1 { syntax: '<percentage>'; inherits: false; initial-value: 10%; }
+@property --ap-y1 { syntax: '<percentage>'; inherits: false; initial-value: 10%; }
+@property --ap-x2 { syntax: '<percentage>'; inherits: false; initial-value: 90%; }
+@property --ap-y2 { syntax: '<percentage>'; inherits: false; initial-value: 10%; }
+@property --ap-x3 { syntax: '<percentage>'; inherits: false; initial-value: 10%; }
+@property --ap-y3 { syntax: '<percentage>'; inherits: false; initial-value: 90%; }
+@property --ap-x4 { syntax: '<percentage>'; inherits: false; initial-value: 90%; }
+@property --ap-y4 { syntax: '<percentage>'; inherits: false; initial-value: 90%; }
+@property --ap-s1 { syntax: '<percentage>'; inherits: false; initial-value: 55%; }
+@property --ap-s2 { syntax: '<percentage>'; inherits: false; initial-value: 55%; }
+@property --ap-s3 { syntax: '<percentage>'; inherits: false; initial-value: 55%; }
+@property --ap-s4 { syntax: '<percentage>'; inherits: false; initial-value: 55%; }
+
+.ap-animated-gradient {
+  background-color: #1a1410;
+  background-image:
+    radial-gradient(circle at var(--ap-x1) var(--ap-y1), #ff7a1a 0px, transparent var(--ap-s1)),
+    radial-gradient(circle at var(--ap-x2) var(--ap-y2), #f5c065 0px, transparent var(--ap-s2)),
+    radial-gradient(circle at var(--ap-x3) var(--ap-y3), #b14a00 0px, transparent var(--ap-s3)),
+    radial-gradient(circle at var(--ap-x4) var(--ap-y4), #ffb066 0px, transparent var(--ap-s4));
+  animation:
+    ap-blob1 6s ease-in-out infinite,
+    ap-blob2 7s ease-in-out infinite,
+    ap-blob3 6.5s ease-in-out infinite,
+    ap-blob4 7.5s ease-in-out infinite,
+    ap-size1 4s ease-in-out infinite,
+    ap-size2 4.6s ease-in-out infinite,
+    ap-size3 4.2s ease-in-out infinite,
+    ap-size4 5s ease-in-out infinite;
+}
+@keyframes ap-blob1 { 0%,100%{--ap-x1:5%;--ap-y1:5%} 25%{--ap-x1:45%;--ap-y1:20%} 50%{--ap-x1:30%;--ap-y1:55%} 75%{--ap-x1:0%;--ap-y1:30%} }
+@keyframes ap-blob2 { 0%,100%{--ap-x2:95%;--ap-y2:5%} 33%{--ap-x2:55%;--ap-y2:35%} 66%{--ap-x2:80%;--ap-y2:65%} }
+@keyframes ap-blob3 { 0%,100%{--ap-x3:5%;--ap-y3:95%} 40%{--ap-x3:45%;--ap-y3:65%} 70%{--ap-x3:25%;--ap-y3:100%} }
+@keyframes ap-blob4 { 0%,100%{--ap-x4:95%;--ap-y4:95%} 30%{--ap-x4:60%;--ap-y4:70%} 60%{--ap-x4:100%;--ap-y4:50%} }
+@keyframes ap-size1 { 0%,100%{--ap-s1:45%} 50%{--ap-s1:80%} }
+@keyframes ap-size2 { 0%,100%{--ap-s2:45%} 50%{--ap-s2:85%} }
+@keyframes ap-size3 { 0%,100%{--ap-s3:45%} 50%{--ap-s3:78%} }
+@keyframes ap-size4 { 0%,100%{--ap-s4:45%} 50%{--ap-s4:82%} }
+
+@media (prefers-reduced-motion: reduce) {
+  .ap-animated-gradient { animation: none; }
+}
+
+/* Marquee */
+@keyframes ap-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.ap-marquee { animation: ap-marquee 30s linear infinite; }
+
+/* Subtle grid for marketing surfaces */
+.ap-grid-bg {
+  background-image:
+    linear-gradient(to right, rgba(255,255,255,0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,255,255,0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+}

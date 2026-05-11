@@ -1,0 +1,55 @@
+{
+  "name": "@arcpay/sdk",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Typed ArcPay SDK facade for treasury, privacy, yield, risk, swaps, and growth integrations.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@solana/web3.js": "^1.98.4"
+  },
+  "peerDependencies": {
+    "@cloak.dev/sdk": "^0.1.6",
+    "@covalenthq/client-sdk": "^3.0.6",
+    "@dflow-protocol/client": "^0.5.6",
+    "@kamino-finance/klend-sdk": "^7.3.22",
+    "@qvac/sdk": "^0.9.2 || ^0.10.2",
+    "@torque-labs/sdk": "^0.0.15",
+    "@umbra-privacy/sdk": "^4.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@cloak.dev/sdk": {
+      "optional": true
+    },
+    "@covalenthq/client-sdk": {
+      "optional": true
+    },
+    "@dflow-protocol/client": {
+      "optional": true
+    },
+    "@kamino-finance/klend-sdk": {
+      "optional": true
+    },
+    "@qvac/sdk": {
+      "optional": true
+    },
+    "@torque-labs/sdk": {
+      "optional": true
+    },
+    "@umbra-privacy/sdk": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.4"
+  },
+  "optionalDependencies": {
+    "@cloak.dev/sdk-devnet": "^0.1.5-devnet.1"
+  }
+}

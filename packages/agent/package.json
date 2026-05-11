@@ -1,0 +1,47 @@
+{
+  "name": "@arcpay/agent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ArcPay local intelligence and end-to-end demo runner.",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "demo": "npm run build && node dist/demo.js",
+    "proof:program:init": "npm run build && node dist/program-proof.js",
+    "proof:program:payment": "npm run build && node dist/program-payment-proof.js",
+    "proof:program:policy": "npm run build && node dist/program-policy-proof.js",
+    "proof:program:shield": "npm run build && node dist/program-shield-proof.js",
+    "proof:cloak": "npm run build -w @arcpay/sdk && npm run build && node dist/cloak-devnet-proof.js",
+    "proof:dflow": "npm run build -w @arcpay/sdk && npm run build && node dist/dflow-order-proof.js",
+    "proof:goldrush": "npm run build -w @arcpay/sdk && npm run build && node dist/goldrush-proof.js",
+    "proof:ika": "npm run build && node dist/ika-proof.js",
+    "proof:ika:approve": "npm run build && node dist/ika-approve-message-proof.js",
+    "proof:ika:create-dwallet": "npm run build && node dist/ika-create-dwallet-proof.js",
+    "proof:ika:grpc": "npm run build && node dist/ika-grpc-proof.js",
+    "proof:magicblock": "npm run build && node dist/magicblock-private-payments-proof.js",
+    "proof:pusd": "npm run build && node dist/pusd-proof.js",
+    "proof:qvac": "npm run build -w @arcpay/sdk && npm run build && node dist/qvac-proof.js",
+    "proof:torque": "npm run build && node dist/torque-proof.js",
+    "proof:x402:payment": "npm run build && node dist/x402-payment-proof.js",
+    "readiness:tracks": "npm run build && node dist/track-readiness.js",
+    "smoke:kamino": "npm run build && node dist/kamino-smoke.js",
+    "smoke:partners": "npm run build && node dist/partner-smoke.js",
+    "smoke:torque": "npm run build && node dist/torque-smoke.js",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@arcpay/sdk": "0.1.0",
+    "@grpc/grpc-js": "^1.14.3",
+    "@grpc/proto-loader": "^0.8.1",
+    "@mysten/bcs": "^2.0.5",
+    "@noble/hashes": "^1.8.0",
+    "@solana/spl-token": "^0.4.14",
+    "@solana/web3.js": "^1.98.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "tsx": "^4.21.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.4"
+  }
+}
