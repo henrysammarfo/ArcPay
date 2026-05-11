@@ -110,10 +110,9 @@ Latest WSL verification:
   `arcpay_paid_agent_request` were both accepted by Torque's ingester. Latest
   accepted ingestion IDs: `82a89c4c-6a6e-43fe-960f-63214e2dcd86` and
   `b8aacdc3-3678-4bd6-9742-56e0a6f73fb0`.
-- QVAC adapter and proof runner build/test, but QVAC team confirmed WSL is
-  currently untested. The next honest live proof is native Linux x64 with the
-  canonical `npm i @qvac/sdk` install, `QVAC_SDK_PATH`, and
-  `QVAC_LINUX_HOST_CONFIRMED=true`.
+- QVAC adapter and proof runner passed on native Azure Ubuntu 24.04 x86_64 with
+  `@qvac/sdk@0.10.2`, the Qwen3 600M Q4 registry model, and Vulkan runtime
+  libraries installed.
 - Track-level eligibility and final submission blockers are tracked in
   `docs/track-submission-checklist.md`.
 
@@ -131,7 +130,7 @@ Latest WSL verification:
 | Meteora / LP Agent | Real LP Agent API response and Zap In or Zap Out used inside ArcPay; final proof should include a signed transaction or resulting position proof if funds enter liquidity. | SDK uses the official `/open-api/v1` + `x-api-key` REST boundary. `smoke:partners` can validate pool info, owner positions, or unsigned Zap-In transaction generation. | Read-only proof is partial only. Track completion requires live Zap-In or Zap-Out proof. |
 | Birdeye | Real API response for selected token price/rate used in decision or dashboard. | Live price smoke passed with configured key: SOL price `92.51651732649881`, update time `1778288071`. | Read-only API proof complete; dashboard integration still pending. |
 | DFlow | Real API order/quote plus signed and submitted swap/intent transaction routed through DFlow; tx signature. | Live dev order quote passed; latest signable order proof quoted `1000000` wrapped SOL units to `94025` USDC units at slot `418795033`, signed transaction size `521` bytes, not submitted. REST order/quote/intent boundary typed/tested. | Signable transaction proof complete; not complete until submitted swap or intent proof. |
-| QVAC | Real local QVAC runtime decision output or documented live model/API response used by the demo. | SDK has a live `@qvac/sdk` local adapter and `proof:qvac` runner that validates strict JSON decisions. QVAC team confirmed Linux x64 binaries are tested and WSL is untested. | Not complete until `proof:qvac` returns a live decision on native Linux x64. |
+| QVAC | Real local QVAC runtime decision output or documented live model/API response used by the demo. | Native Azure Ubuntu 24.04 x86_64 proof passed with `@qvac/sdk@0.10.2`, Qwen3 600M Q4 model, and a live treasury decision: `CONVERT_NOW` confidence `1`. | Complete for live local QVAC decision proof; keep VM output for demo/judging evidence. |
 | GoldRush | Real API response for Solana counterparty balances and, if available, transaction/history risk data; decision result recorded. | Live Solana balances access passed with configured key: `1` balance item returned. | Partially complete; transaction-history scoring unverified. |
 | Torque | Real Torque MCP/API activity: `custom_events`, incentive trigger, or distributor proof; project/campaign ID; friction log; demo post on X tagging `@torqueprotocol`. | Real Torque custom events accepted by `POST https://ingest.torque.so/events`: latest `arcpay_wallet_connected` ingestion `82a89c4c-6a6e-43fe-960f-63214e2dcd86`; latest `arcpay_paid_agent_request` ingestion `b8aacdc3-3678-4bd6-9742-56e0a6f73fb0`; paid event uses verified Solana x402 transaction `2DmD554raX8Z3f5rP2Dmbby9M2UtkUUhpswy7Lcmbqrt5GQ3RodN1aTue9z8gnUvcC28EBmt2SdhdGT6f5rTvwqB`. | Live custom-event proof complete; submission still needs friction log and demo/X post. |
 | PUSD | Real PUSD mint/address validation and receive/pay flow proof. | `proof:pusd` passed: Palm API reports Solana circulation `2895000` as of `2026-04-24T14:30:00Z`; Solana mainnet mint `CZzgUBvxaMLwMhVSLgqJn3npmxoTo6nzMNQPAnwtHF3s` has 6 decimals and no freeze authority. | Mint/API proof complete; not complete until real PUSD receive/pay flow or sponsor-accepted proof. |
@@ -167,8 +166,8 @@ environment variables, or provider dashboards.
 ### QVAC Local Runtime Proof
 
 Run this from native Linux x64, not WSL. QVAC team confirmed linux-x64 binaries
-are tested and WSL is currently untested. If `@qvac/sdk` is installed outside
-the ArcPay workspace, point `QVAC_SDK_PATH` at that package directory.
+are tested and WSL is currently untested. The successful Azure proof also
+required `libvulkan1` and `mesa-vulkan-drivers`.
 
 The full install/verify/proof flow is scripted:
 
@@ -180,13 +179,20 @@ bash scripts/qvac-runtime-proof.sh
 Manual proof command after a successful runtime install:
 
 ```bash
-cd /mnt/c/Users/RICHEY_SON/Desktop/ArcPay
+cd ~/ArcPay
 export ARCPAY_REQUIRE_LIVE_QVAC=true
 export QVAC_SDK_PATH="$HOME/arcpay-qvac-runtime/node_modules/@qvac/sdk"
-export QVAC_LINUX_HOST_CONFIRMED=true
-export QVAC_MODEL_CONFIG_JSON='{"ctx_size":"2048","device":"cpu"}'
-export QVAC_PROOF_TIMEOUT_MS=120000
+export QVAC_MODEL_SRC="registry://hf/unsloth/Qwen3-0.6B-GGUF/blob/50968a4468ef4233ed78cd7c3de230dd1d61a56b/Qwen3-0.6B-Q4_0.gguf"
+export QVAC_MODEL_CONFIG_JSON='{"ctx_size":2048}'
+export QVAC_PROOF_TIMEOUT_MS=300000
 npm run proof:qvac -w @arcpay/agent
+```
+
+Latest passing output:
+
+```text
+PASSED QVAC: QVAC returned live treasury decision CONVERT_NOW.
+Decision: {"action":"CONVERT_NOW","confidence":1,"reason":"Convert now to maximize gains using the AUDD/USDC rate of 1.002, which provides a 5.2% Kamino APY. No pending payments exist, and converting now maximizes current opportunities."}
 ```
 
 If package installation exits non-zero, capture the final npm error without

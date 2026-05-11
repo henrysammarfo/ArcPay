@@ -36,7 +36,7 @@ Run inside the VM:
 
 ```bash
 sudo apt update
-sudo apt install -y curl git ca-certificates build-essential
+sudo apt install -y curl git ca-certificates build-essential libvulkan1 mesa-vulkan-drivers
 
 curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
 sudo apt install -y nodejs
@@ -72,17 +72,28 @@ Inside the VM:
 ```bash
 cd ~/ArcPay
 npm install
-bash scripts/qvac-runtime-proof.sh
+ARCPAY_REQUIRE_LIVE_QVAC=true \
+QVAC_SDK_PATH="$HOME/arcpay-qvac-runtime/node_modules/@qvac/sdk" \
+QVAC_MODEL_SRC="registry://hf/unsloth/Qwen3-0.6B-GGUF/blob/50968a4468ef4233ed78cd7c3de230dd1d61a56b/Qwen3-0.6B-Q4_0.gguf" \
+QVAC_MODEL_CONFIG_JSON='{"ctx_size":2048}' \
+QVAC_PROOF_TIMEOUT_MS=300000 \
+npm run proof:qvac -w @arcpay/agent
 ```
 
-The script does all of this:
+The native Azure proof used:
 
-- Confirms the host is native Linux x64.
-- Creates a clean `~/arcpay-qvac-runtime`.
-- Runs the canonical `npm i @qvac/sdk`.
-- Verifies the official QVAC SDK import.
-- Runs `npm run proof:qvac -w @arcpay/agent` with
-  `QVAC_LINUX_HOST_CONFIRMED=true`.
+- Ubuntu 24.04 x86_64 on Azure.
+- Node `v22.22.2`.
+- `@qvac/sdk@0.10.2`.
+- `libvulkan1` and `mesa-vulkan-drivers` for the native llama.cpp addon.
+- QVAC Qwen3 600M Q4 model from the QVAC registry.
+
+Passing output:
+
+```text
+PASSED QVAC: QVAC returned live treasury decision CONVERT_NOW.
+Decision: {"action":"CONVERT_NOW","confidence":1,"reason":"Convert now to maximize gains using the AUDD/USDC rate of 1.002, which provides a 5.2% Kamino APY. No pending payments exist, and converting now maximizes current opportunities."}
+```
 
 If the script passes, save:
 
@@ -118,4 +129,3 @@ bash scripts/qvac-runtime-proof.sh
 Here is the npm/debug output:
 <paste log>
 ```
-

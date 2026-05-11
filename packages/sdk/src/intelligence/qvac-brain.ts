@@ -104,7 +104,7 @@ export function createQvacLocalClient(options: QvacLocalClientOptions = {}): Qva
       try {
         const response = sdk.completion({
           modelId,
-          stream: true,
+          stream: false,
           history: buildDecisionPrompt(params),
         });
         return parseTreasuryDecision(await extractCompletionText(response), params.options);

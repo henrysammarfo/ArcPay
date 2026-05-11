@@ -296,7 +296,7 @@ describe("intelligence adapters", () => {
           return "model-id";
         },
         async completion(params) {
-          expect(params.stream).toBe(true);
+          expect(params.stream).toBe(false);
           calls.push(`complete:${params.modelId}:${params.history.length}`);
           return {
             final: Promise.resolve({
