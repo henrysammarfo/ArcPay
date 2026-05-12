@@ -3,7 +3,7 @@
 import { ConnectionProvider, WalletProvider } from "@solana/wallet-adapter-react";
 import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
 import { SolflareWalletAdapter } from "@solana/wallet-adapter-solflare";
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { useNetwork } from "../product-ui/store/network";
 import { NetworkModeProvider } from "./network-context";
 import "@solana/wallet-adapter-react-ui/styles.css";
@@ -30,6 +30,11 @@ function WalletConnectionProvider({ children }: { readonly children: ReactNode }
     () => [new SolflareWalletAdapter(), ...(phantomWallet ? [phantomWallet] : [])],
     [phantomWallet],
   );
+  const handleWalletError = useCallback((error: unknown) => {
+    const message = error instanceof Error ? error.message : String(error);
+
+    console.warn("Solana wallet connection failed.", message);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -55,7 +60,7 @@ function WalletConnectionProvider({ children }: { readonly children: ReactNode }
 
   return (
     <ConnectionProvider endpoint={endpoint} key={`${network}:${endpoint}`}>
-      <WalletProvider wallets={wallets} autoConnect>
+      <WalletProvider wallets={wallets} autoConnect={false} onError={handleWalletError}>
         <WalletModalProvider>{children}</WalletModalProvider>
       </WalletProvider>
     </ConnectionProvider>

@@ -1,7 +1,6 @@
 import { useState, type ComponentProps } from "react";
-import { useWallet } from "@solana/wallet-adapter-react";
-import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import { Eye, EyeOff } from "lucide-react";
+import { useWalletConnectAction } from "@/hooks/use-wallet-connect-action";
 
 export function Field({
   label,
@@ -51,18 +50,29 @@ export function PasswordField({
 }
 
 export function WalletConnectButton() {
-  const { connected, publicKey } = useWallet();
-  const { setVisible } = useWalletModal();
+  const walletAction = useWalletConnectAction();
 
   return (
-    <button
-      type="button"
-      onClick={() => setVisible(true)}
-      className="w-full h-12 bg-foreground text-background rounded-xl flex items-center justify-center gap-2 font-semibold hover:opacity-90 transition-opacity"
-    >
-      <span className="w-2 h-2 rounded-full bg-primary" />
-      {connected && publicKey ? `${publicKey.toBase58().slice(0, 4)}...${publicKey.toBase58().slice(-4)}` : "Connect Solana wallet"}
-    </button>
+    <div className="space-y-2">
+      <button
+        type="button"
+        onClick={() => void walletAction.connectWallet()}
+        disabled={walletAction.connecting}
+        className="w-full h-12 bg-foreground text-background rounded-xl flex items-center justify-center gap-2 font-semibold hover:opacity-90 transition-opacity disabled:opacity-60"
+      >
+        <span className="w-2 h-2 rounded-full bg-primary" />
+        {walletAction.connected && walletAction.publicKeyBase58
+          ? walletAction.label
+          : walletAction.label === "Connect"
+            ? "Connect Solana wallet"
+            : walletAction.label}
+      </button>
+      {walletAction.errorMessage && (
+        <div className="rounded-xl border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+          {walletAction.errorMessage}
+        </div>
+      )}
+    </div>
   );
 }
 

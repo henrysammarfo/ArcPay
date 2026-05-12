@@ -2,7 +2,6 @@ import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Bell, Search, Wallet, ChevronDown, Building2, UserRound, Settings, LogOut, ShieldCheck } from "lucide-react";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import {
   DropdownMenu,
@@ -15,6 +14,7 @@ import {
 import { useNetwork } from "@/store/network";
 import { CommandPalette } from "./CommandPalette";
 import { getOptionalSupabaseClient } from "../../../app/supabase-client";
+import { useWalletConnectAction } from "@/hooks/use-wallet-connect-action";
 
 export function AppTopBar() {
   const mode = useNetwork((s) => s.mode);
@@ -23,7 +23,7 @@ export function AppTopBar() {
   const [email, setEmail] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState<string>("");
   const wallet = useWallet();
-  const walletModal = useWalletModal();
+  const walletAction = useWalletConnectAction();
   const walletAddress = wallet.publicKey?.toBase58() ?? null;
 
   useEffect(() => {
@@ -147,11 +147,12 @@ export function AppTopBar() {
         {/* Wallet pill */}
         <button
           type="button"
-          onClick={() => walletModal.setVisible(true)}
+          onClick={() => void walletAction.connectWallet()}
+          disabled={walletAction.connecting}
           className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted hover:bg-muted/70 text-sm font-medium transition-colors"
         >
           <Wallet className="w-4 h-4 text-muted-foreground" />
-          <span className="font-mono text-xs">{walletAddress ? short(walletAddress) : "Connect"}</span>
+          <span className="font-mono text-xs">{walletAction.label}</span>
         </button>
 
         {/* Search */}

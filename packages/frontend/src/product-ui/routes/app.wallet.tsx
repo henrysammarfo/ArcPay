@@ -2,7 +2,6 @@
 
 import { createFileRoute } from "@tanstack/react-router";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import { LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import {
   CheckCircle2,
@@ -19,6 +18,7 @@ import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react
 import { PageHeader } from "@/components/app/PageHeader";
 import { NetworkBadge } from "@/components/primitives/NetworkBadge";
 import { StatCard } from "@/components/primitives/StatCard";
+import { useWalletConnectAction } from "@/hooks/use-wallet-connect-action";
 import { useNetwork } from "@/store/network";
 
 const TOKEN_PROGRAM_ID = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
@@ -41,7 +41,7 @@ export const Route = createFileRoute("/app/wallet")({
 function WalletPage() {
   const { connection } = useConnection();
   const wallet = useWallet();
-  const walletModal = useWalletModal();
+  const walletAction = useWalletConnectAction();
   const mode = useNetwork((state) => state.mode);
   const setMode = useNetwork((state) => state.setMode);
   const [status, setStatus] = useState<LoadState>("idle");
@@ -174,12 +174,19 @@ function WalletPage() {
             </div>
             <button
               type="button"
-              onClick={() => walletModal.setVisible(true)}
+              onClick={() => void walletAction.connectWallet()}
+              disabled={walletAction.connecting}
               className="rounded-full bg-foreground px-5 py-2.5 text-sm font-medium text-background transition hover:bg-foreground/85"
             >
-              {wallet.connected ? "Change wallet" : "Connect wallet"}
+              {wallet.connected ? "Change wallet" : walletAction.label === "Connect" ? "Connect wallet" : walletAction.label}
             </button>
           </div>
+
+          {walletAction.errorMessage && (
+            <div className="mt-4 rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              {walletAction.errorMessage}
+            </div>
+          )}
 
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
             <DetailRow

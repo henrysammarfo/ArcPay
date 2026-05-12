@@ -30,7 +30,7 @@ const ROWS: { provider: string; surface: string; status: Status; note: string; e
   { provider: "Ika", surface: "dWallet policy approval", status: "devnet", note: "Privacy page checks Ika program/dWallet approval proof.", endpoint: "/api/ika" },
   { provider: "PUSD", surface: "Stablecoin rail", status: "live", note: "PUSD route verifies official mint metadata and Palm circulation API.", endpoint: "/api/pusd" },
   { provider: "Zerion", surface: "CLI execution", status: "needs wallet", note: "Requires funded mainnet CLI transaction; API key is configured, but no browser signer route is claimed." },
-  { provider: "QVAC", surface: "Local treasury brain", status: "needs wallet", note: "Requires native Linux x64 host. WSL is not supported by QVAC team." },
+  { provider: "QVAC", surface: "Local treasury brain", status: "devnet", note: "Native Linux x64 backend runs a local QVAC model decision on demand.", endpoint: "/api/qvac" },
   { provider: "AUDD", surface: "AUD settlement", status: "live", note: "Supported payment token and routed through swap/payment policy pages." },
 ];
 
@@ -56,9 +56,31 @@ function ProofsPage() {
             body: row.endpoint === "/api/magicblock" ? JSON.stringify({ amount: 1_000_000 }) : undefined,
             cache: "no-store",
           });
-          const payload = (await response.json()) as { error?: string; status?: string; transactionBytes?: number };
+          const payload = (await response.json()) as {
+            error?: string;
+            status?: string;
+            transactionBytes?: number;
+            liveProof?: boolean;
+            decision?: { action?: string; confidence?: number; reason?: string };
+            message?: string;
+          };
           if (!response.ok || payload.error) {
             return { ...row, status: "error" as const, note: payload.error ?? `HTTP ${response.status}` };
+          }
+          if (row.endpoint === "/api/qvac") {
+            if (payload.liveProof && payload.decision?.action) {
+              return {
+                ...row,
+                status: "live" as const,
+                note: `Live local QVAC decision: ${payload.decision.action} (${Math.round(Number(payload.decision.confidence ?? 0) * 100)}% confidence). ${payload.decision.reason ?? ""}`,
+              };
+            }
+
+            return {
+              ...row,
+              status: "error" as const,
+              note: payload.message ?? "QVAC backend is reachable but no live decision was returned.",
+            };
           }
           const suffix = payload.transactionBytes ? ` Transaction bytes: ${payload.transactionBytes}.` : payload.status ? ` Status: ${payload.status}.` : "";
           return { ...row, note: `${row.note}${suffix}` };

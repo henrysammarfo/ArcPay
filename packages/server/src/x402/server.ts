@@ -19,6 +19,7 @@ import {
   verifyQuickNodeWebhookSecret,
   type QuickNodeWebhookStore,
 } from "./quicknode-webhook.js";
+import { readLiveQvacDecision } from "./qvac-live.js";
 
 export interface CreateArcPayX402ServerOptions {
   readonly paymentVerifier?: PaymentVerifier;
@@ -163,6 +164,14 @@ export function createArcPayX402Server(
 
   app.get("/live/quicknode", (_request, response) => {
     response.json(quickNodeWebhookStore.status());
+  });
+
+  app.get("/live/qvac", async (_request, response, next) => {
+    try {
+      response.json(await readLiveQvacDecision());
+    } catch (error) {
+      next(error);
+    }
   });
 
   return app;

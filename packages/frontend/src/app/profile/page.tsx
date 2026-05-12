@@ -3,10 +3,10 @@
 import type { InputHTMLAttributes } from "react";
 import { useEffect, useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import { UserRound, Wallet } from "lucide-react";
 import { ProductAppShell } from "../product-render";
 import { PageHeader } from "../../product-ui/components/app/PageHeader";
+import { useWalletConnectAction } from "../../product-ui/hooks/use-wallet-connect-action";
 import { getOptionalSupabaseClient } from "../supabase-client";
 
 type ProfileForm = {
@@ -32,7 +32,7 @@ export default function ProfilePage() {
   const [status, setStatus] = useState("Sign in to sync this profile across devices.");
   const [saving, setSaving] = useState(false);
   const wallet = useWallet();
-  const walletModal = useWalletModal();
+  const walletAction = useWalletConnectAction();
   const walletAddress = wallet.publicKey?.toBase58() ?? "";
 
   useEffect(() => {
@@ -185,12 +185,19 @@ export default function ProfilePage() {
           </div>
 
           <button
-            className="mt-4 w-full rounded-full bg-primary text-primary-foreground px-4 py-2.5 text-sm font-medium hover:brightness-110"
-            onClick={() => walletModal.setVisible(true)}
+            className="mt-4 w-full rounded-full bg-primary text-primary-foreground px-4 py-2.5 text-sm font-medium hover:brightness-110 disabled:opacity-60"
+            onClick={() => void walletAction.connectWallet()}
+            disabled={walletAction.connecting}
             type="button"
           >
-            {walletAddress ? "Change wallet" : "Connect wallet"}
+            {walletAddress ? "Change wallet" : walletAction.label === "Connect" ? "Connect wallet" : walletAction.label}
           </button>
+
+          {walletAction.errorMessage && (
+            <div className="mt-3 rounded-xl border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+              {walletAction.errorMessage}
+            </div>
+          )}
 
           <div className="mt-5 space-y-3 text-sm">
             <Row label="Email session" value={email ? "Signed in" : "Not signed in"} />
