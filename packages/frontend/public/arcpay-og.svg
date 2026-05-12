@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-label="ArcPay private treasury OS for AI agents on Solana">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#FFF7E8"/>
+      <stop offset=".52" stop-color="#F5F1E8"/>
+      <stop offset="1" stop-color="#F59E0B"/>
+    </linearGradient>
+    <radialGradient id="halo" cx=".72" cy=".38" r=".52">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity=".86"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect x="730" y="-80" width="520" height="520" rx="140" fill="url(#halo)"/>
+  <rect x="64" y="64" width="1072" height="502" rx="42" fill="#0F0F0C" fill-opacity=".92"/>
+  <g transform="translate(104 116) scale(.58)">
+    <path fill="#F59E0B" d="M128.005 191.173C128.448 156.208 156.93 128 192 128V64h-64c0 35.346-28.654 64-64 64v64h64.005ZM192 256H64C28.654 256 0 227.346 0 192V64h64V0h128c35.346 0 64 28.654 64 64v128h-64v64Z"/>
+    <path fill="#FFF7E8" d="M128 64h64v64c-35.07 0-63.552 28.208-63.995 63.173L128 192H64v-64c35.346 0 64-28.654 64-64Z"/>
+  </g>
+  <text x="276" y="198" fill="#FFF7E8" font-family="Arial, Helvetica, sans-serif" font-size="72" font-weight="700" letter-spacing="-3">ArcPay</text>
+  <text x="104" y="318" fill="#FFF7E8" font-family="Arial, Helvetica, sans-serif" font-size="56" font-weight="700" letter-spacing="-2">Private treasury OS for AI agents</text>
+  <text x="104" y="392" fill="#F6D49A" font-family="Arial, Helvetica, sans-serif" font-size="30">Receive, shield, route, yield, pay, and audit funds on Solana.</text>
+  <g fill="#F59E0B" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700">
+    <text x="104" y="500">Solana</text>
+    <text x="220" y="500">x402</text>
+    <text x="320" y="500">QVAC</text>
+    <text x="430" y="500">DFlow</text>
+    <text x="540" y="500">GoldRush</text>
+    <text x="690" y="500">Kamino</text>
+  </g>
+</svg>

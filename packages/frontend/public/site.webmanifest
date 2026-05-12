@@ -1,0 +1,17 @@
+{
+  "name": "ArcPay",
+  "short_name": "ArcPay",
+  "description": "Private, policy-controlled treasury OS for AI agents on Solana.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFF7E8",
+  "theme_color": "#F59E0B",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

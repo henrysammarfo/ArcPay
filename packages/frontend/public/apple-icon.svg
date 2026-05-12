@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" role="img" aria-label="ArcPay">
+  <rect width="180" height="180" rx="40" fill="#0F0F0C"/>
+  <path fill="#F59E0B" d="M90 134.4c.31-24.58 20.33-44.4 45-44.4V45H90c0 24.85-20.15 45-45 45v45h45Zm45 45H45c-24.85 0-45-20.15-45-45v-90h45V0h90c24.85 0 45 20.15 45 45v90h-45v44.4Z"/>
+  <path fill="#FFF7E8" d="M90 45h45v45c-24.67 0-44.69 19.82-45 44.4V135H45V90c24.85 0 45-20.15 45-45Z"/>
+</svg>

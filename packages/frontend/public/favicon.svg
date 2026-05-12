@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="ArcPay">
+  <rect width="256" height="256" rx="58" fill="#0F0F0C"/>
+  <path fill="#F59E0B" d="M128.005 191.173C128.448 156.208 156.93 128 192 128V64h-64c0 35.346-28.654 64-64 64v64h64.005ZM192 256H64C28.654 256 0 227.346 0 192V64h64V0h128c35.346 0 64 28.654 64 64v128h-64v64Z"/>
+  <path fill="#FFF7E8" fill-opacity=".96" d="M128 64h64v64c-35.07 0-63.552 28.208-63.995 63.173L128 192H64v-64c35.346 0 64-28.654 64-64Z"/>
+</svg>
