@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
 
   for (const serverUrl of candidates) {
     try {
-      const response = await fetch(`${serverUrl}/live/qvac`, {
+      const response = await fetch(`${serverUrl}/live/quicknode`, {
         cache: "no-store",
         signal: AbortSignal.timeout(4_500),
       });
@@ -22,19 +22,18 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         ...(payload ?? {}),
         liveProof: Boolean(payload?.liveProof),
-        serverUrl,
         network,
+        serverUrl,
       });
     } catch (error) {
-      failures.push(`${serverUrl}: ${error instanceof Error ? error.message : "QVAC live decision endpoint is unavailable."}`);
+      failures.push(`${serverUrl}: ${error instanceof Error ? error.message : "QuickNode live proof endpoint is unavailable."}`);
     }
   }
 
   return NextResponse.json({
     liveProof: false,
-    status: "unavailable",
     network,
     serverUrl: candidates.at(-1) ?? "",
-    message: `QVAC backend is not reachable from this runtime. Tried ${failures.join("; ")}`,
+    message: `QuickNode backend is not reachable from this runtime. Tried ${failures.join("; ")}`,
   });
 }

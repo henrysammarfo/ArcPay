@@ -1,4 +1,4 @@
-const DEFAULT_ARCPAY_SERVER_URL = "http://localhost:4030";
+import { resolveArcPayServerUrl } from "../server-targets";
 
 export interface LiveTreasuryStatus {
   readonly source: "solana-rpc";
@@ -46,7 +46,11 @@ export interface FetchLiveTreasuryStatusParams {
 
 export async function fetchLiveTreasuryStatus({
   network,
-  serverUrl = DEFAULT_ARCPAY_SERVER_URL,
+  serverUrl = resolveArcPayServerUrl(network ?? "devnet", {
+    NEXT_PUBLIC_ARCPAY_DEVNET_SERVER_URL: process.env.NEXT_PUBLIC_ARCPAY_DEVNET_SERVER_URL,
+    NEXT_PUBLIC_ARCPAY_MAINNET_SERVER_URL: process.env.NEXT_PUBLIC_ARCPAY_MAINNET_SERVER_URL,
+    NEXT_PUBLIC_ARCPAY_SERVER_URL: process.env.NEXT_PUBLIC_ARCPAY_SERVER_URL,
+  }),
   signal,
   fetchImpl = fetch,
 }: FetchLiveTreasuryStatusParams = {}): Promise<LiveTreasuryStatus> {

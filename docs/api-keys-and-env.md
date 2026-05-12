@@ -44,10 +44,38 @@ The customer app now calls real server routes instead of static proof cards:
 | `/api/umbra` | Umbra indexer reachability | `/privacy` provider action and `/proofs` |
 | `/api/ika` | Ika program/dWallet/approval proof | `/privacy` provider action and `/proofs` |
 | `/api/pusd` | PUSD SPL mint + Palm circulation API | `/privacy` provider action and `/proofs` |
+| `/api/qvac` | Azure-hosted ArcPay backend `/live/qvac` proxy | `/proofs` live QVAC status |
+| `/api/quicknode` | Azure-hosted ArcPay backend `/live/quicknode` proxy | `/proofs` live QuickNode webhook status |
 
 These routes do not fake transaction settlement. If a provider needs funds or a
 wallet signature, the UI returns the provider/config/funding error and does not
 mark funds as moved.
+
+## Azure And Vercel Split
+
+ArcPay is now shaped for a split deployment:
+
+- `packages/frontend` on Vercel
+- `packages/server` on Azure
+
+For clean devnet/mainnet separation, prefer separate Azure backend URLs:
+
+```bash
+ARCPAY_DEVNET_SERVER_URL=https://<your-devnet-backend>
+ARCPAY_MAINNET_SERVER_URL=https://<your-mainnet-backend>
+NEXT_PUBLIC_ARCPAY_DEVNET_SERVER_URL=https://<your-devnet-backend>
+NEXT_PUBLIC_ARCPAY_MAINNET_SERVER_URL=https://<your-mainnet-backend>
+```
+
+The older single-backend vars still work as fallback:
+
+```bash
+ARCPAY_SERVER_URL=https://<shared-backend>
+NEXT_PUBLIC_ARCPAY_SERVER_URL=https://<shared-backend>
+```
+
+Use the split URLs when you want Vercel to target a devnet Azure service for
+devnet pages and a separate mainnet Azure service for mainnet pages.
 
 ## Key And Access Checklist
 
