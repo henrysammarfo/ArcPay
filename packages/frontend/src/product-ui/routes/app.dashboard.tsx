@@ -1,78 +1,241 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import {
-  Wallet,
-  Lock,
+  AlertTriangle,
+  ArrowDownLeft,
+  ArrowUpRight,
+  CheckCircle2,
   Coins,
-  TrendingUp,
+  Lock,
+  Route as RouteIcon,
   Send,
   ShieldAlert,
-  Route as RouteIcon,
   Sparkles,
-  ArrowUpRight,
-  ArrowDownLeft,
-  CheckCircle2,
-  AlertTriangle,
+  TrendingUp,
+  Wallet,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { StatCard } from "@/components/primitives/StatCard";
+import { PageHeader } from "@/components/app/PageHeader";
 import { NetworkBadge } from "@/components/primitives/NetworkBadge";
+import { StatCard } from "@/components/primitives/StatCard";
+import { ensureCurrentUserAccount } from "@/lib/account";
 import { useNetwork } from "@/store/network";
+import { getOptionalSupabaseClient } from "../../app/supabase-client";
 
 export const Route = createFileRoute("/app/dashboard")({
-  head: () => ({ meta: [{ title: "Overview — ArcPay" }] }),
+  head: () => ({ meta: [{ title: "Overview - ArcPay" }] }),
   component: Dashboard,
 });
 
-const FLOW_PLACEHOLDER = [
-  { t: "00", in: 1200, out: 800 },
-  { t: "03", in: 1800, out: 1100 },
-  { t: "06", in: 2400, out: 1500 },
-  { t: "09", in: 3200, out: 2100 },
-  { t: "12", in: 4400, out: 2800 },
-  { t: "15", in: 4100, out: 3300 },
-  { t: "18", in: 5400, out: 3500 },
-  { t: "21", in: 4800, out: 3000 },
-  { t: "24", in: 6200, out: 3900 },
-];
+type DashboardActivity = {
+  id: string;
+  kind: "in" | "out" | "swap" | "yield";
+  who: string;
+  amt: string;
+  time: string;
+  net: string;
+  amount: number;
+  direction: "in" | "out";
+  createdAt: string;
+};
 
-const ACTIVITY_PLACEHOLDER = [
-  { id: 1, kind: "in", who: "Client · Stripe Atlas", amt: "+ $4,200 USDC", time: "2m ago", net: "mainnet" },
-  { id: 2, kind: "swap", who: "DFlow swap USDC → AUDD", amt: "$1,800", time: "14m ago", net: "mainnet" },
-  { id: 3, kind: "out", who: "Contractor · 7Hk…9bX", amt: "− $850 USDC", time: "1h ago", net: "mainnet" },
-  { id: 4, kind: "yield", who: "Kamino USDC vault deposit", amt: "$10,000", time: "3h ago", net: "mainnet" },
-  { id: 5, kind: "in", who: "x402 endpoint · /agents/research", amt: "+ $42 PUSD", time: "5h ago", net: "devnet" },
-];
+type ApprovalRow = {
+  who: string;
+  amt: string;
+  risk: "Approve" | "Review";
+};
 
-const APPROVALS_PLACEHOLDER = [
-  { who: "Contractor payroll · 12 wallets", amt: "$8,420 USDC", risk: "Approve" as const },
-  { who: "Swap to AUDD", amt: "$3,200", risk: "Review" as const },
-  { who: "Kamino top-up", amt: "$15,000", risk: "Approve" as const },
-];
+type AlertRow = {
+  who: string;
+  txt: string;
+  level: "warn" | "info";
+};
 
-const ALERTS_PLACEHOLDER = [
-  { who: "Wallet 9Tu…2qP", txt: "GoldRush score dropped to 42 — below your minimum (60).", level: "warn" as const },
-  { who: "LP Agent", txt: "Premium endpoint connected — unsigned Meteora Zap-In proof is ready.", level: "info" as const },
-];
+type FlowPoint = {
+  t: string;
+  in: number;
+  out: number;
+};
 
 function Dashboard() {
-  const mode = useNetwork((s) => s.mode);
-  const empty = mode === "mainnet"; // mainnet = no wallet connected = honest empty state
+  const mode = useNetwork((state) => state.mode);
+  const { connection } = useConnection();
+  const wallet = useWallet();
   const [mounted, setMounted] = useState(false);
+  const [displayName, setDisplayName] = useState("ArcPay operator");
+  const [solBalance, setSolBalance] = useState<number | null>(null);
+  const [tokenAccountCount, setTokenAccountCount] = useState<number | null>(null);
+  const [tokenTotal, setTokenTotal] = useState<number | null>(null);
+  const [activity, setActivity] = useState<DashboardActivity[]>([]);
+  const [approvals, setApprovals] = useState<ApprovalRow[]>([]);
+  const [alerts, setAlerts] = useState<AlertRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const empty = !wallet.connected || !wallet.publicKey;
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadWallet() {
+      if (!wallet.publicKey) {
+        setSolBalance(null);
+        setTokenAccountCount(null);
+        setTokenTotal(null);
+        return;
+      }
+
+      const [lamports, parsed] = await Promise.all([
+        connection.getBalance(wallet.publicKey, "confirmed"),
+        connection.getParsedTokenAccountsByOwner(wallet.publicKey, { programId: TOKEN_PROGRAM_ID }, "confirmed"),
+      ]);
+
+      if (cancelled) return;
+
+      const balances = parsed.value
+        .map((account) => account.account.data.parsed.info.tokenAmount.uiAmount)
+        .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+
+      setSolBalance(lamports / 1_000_000_000);
+      setTokenAccountCount(parsed.value.length);
+      setTokenTotal(balances.reduce((total, value) => total + value, 0));
+    }
+
+    void loadWallet().catch(() => {
+      if (!cancelled) {
+        setSolBalance(null);
+        setTokenAccountCount(null);
+        setTokenTotal(null);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [connection, wallet.publicKey]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadWorkspaceData() {
+      setLoading(true);
+      const supabase = getOptionalSupabaseClient();
+      if (!supabase) {
+        setLoading(false);
+        return;
+      }
+
+      const account = await ensureCurrentUserAccount(supabase);
+      if (!account) {
+        if (!cancelled) setLoading(false);
+        return;
+      }
+
+      if (!cancelled) {
+        setDisplayName(account.displayName || account.email?.split("@")[0] || "ArcPay operator");
+      }
+
+      const [payments, invoices, privacy, contractors] = await Promise.all([
+        supabase.from("arcpay_payment_requests").select("id, amount, token, memo, route_to, status, created_at").order("created_at", { ascending: false }).limit(20),
+        supabase.from("arcpay_invoices").select("id, client, amount, token, status, created_at").order("created_at", { ascending: false }).limit(20),
+        supabase.from("arcpay_privacy_events").select("id, action, provider, amount, token, status, created_at").order("created_at", { ascending: false }).limit(20),
+        supabase.from("arcpay_contractors").select("id, name, wallet, risk_score, risk_status, created_at").order("created_at", { ascending: false }).limit(20),
+      ]);
+
+      if (cancelled) return;
+
+      const rows: DashboardActivity[] = [
+        ...(payments.data ?? []).map((row) => ({
+          id: `payment-${row.id}`,
+          kind: "in" as const,
+          who: row.memo || row.route_to || "Payment request",
+          amt: `+ ${formatAmount(Number(row.amount), row.token)}`,
+          time: relativeTime(row.created_at),
+          net: mode,
+          amount: Number(row.amount),
+          direction: "in" as const,
+          createdAt: row.created_at,
+        })),
+        ...(invoices.data ?? []).map((row) => ({
+          id: `invoice-${row.id}`,
+          kind: "in" as const,
+          who: `Invoice - ${row.client}`,
+          amt: `+ ${formatAmount(Number(row.amount), row.token)}`,
+          time: relativeTime(row.created_at),
+          net: mode,
+          amount: Number(row.amount),
+          direction: "in" as const,
+          createdAt: row.created_at,
+        })),
+        ...(privacy.data ?? []).map((row) => ({
+          id: `privacy-${row.id}`,
+          kind: row.action === "shield" ? ("out" as const) : ("swap" as const),
+          who: `${row.provider} - ${row.action}`,
+          amt: row.amount ? formatAmount(Number(row.amount), row.token) : "viewing key",
+          time: relativeTime(row.created_at),
+          net: mode,
+          amount: row.amount ? Number(row.amount) : 0,
+          direction: row.action === "shield" ? ("out" as const) : ("in" as const),
+          createdAt: row.created_at,
+        })),
+      ].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+
+      setActivity(rows.slice(0, 8));
+      setApprovals([
+        ...(payments.data ?? [])
+          .filter((row) => row.status === "pending")
+          .slice(0, 4)
+          .map((row) => ({
+            who: row.memo || "Pending payment request",
+            amt: formatAmount(Number(row.amount), row.token),
+            risk: "Review" as const,
+          })),
+        ...(privacy.data ?? [])
+          .filter((row) => row.status === "ready_to_sign" || row.status === "pending")
+          .slice(0, 4)
+          .map((row) => ({
+            who: `${row.provider} ${row.action}`,
+            amt: row.amount ? formatAmount(Number(row.amount), row.token) : "viewing key",
+            risk: "Review" as const,
+          })),
+      ].slice(0, 5));
+      setAlerts((contractors.data ?? [])
+        .filter((row) => row.risk_status === "review" || row.risk_status === "reject" || row.risk_score < 60)
+        .slice(0, 5)
+        .map((row) => ({
+          who: row.name || shortAddress(row.wallet),
+          txt: `GoldRush score ${row.risk_score}/100 is ${row.risk_status}. Policy should review before payment.`,
+          level: row.risk_status === "reject" ? ("warn" as const) : ("info" as const),
+        })));
+      setLoading(false);
+    }
+
+    void loadWorkspaceData().catch(() => {
+      if (!cancelled) setLoading(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [mode]);
+
+  const flow = buildFlow(activity);
+  const pendingAmount = approvals.reduce((total, row) => total + readMoney(row.amt), 0);
+  const operatingValue = solBalance === null ? "--" : `${solBalance.toFixed(4)} SOL`;
+  const tokenValue = tokenTotal === null ? "--" : `${compactNumber(tokenTotal)} token units`;
+
   return (
     <div className="space-y-6">
-      {/* Greeting */}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground flex items-center gap-2">
             Overview <NetworkBadge />
           </div>
           <h1 className="text-3xl md:text-4xl font-medium tracking-tight mt-2" style={{ letterSpacing: "-0.03em" }}>
-            Good morning, Ada.
+            Good morning, {firstName(displayName)}.
           </h1>
         </div>
         <Link to="/app/payments" className="inline-flex items-center gap-2 bg-foreground text-background text-sm font-medium px-4 py-2.5 rounded-full hover:opacity-90">
@@ -80,7 +243,6 @@ function Dashboard() {
         </Link>
       </div>
 
-      {/* Next best action */}
       <div className="rounded-2xl border border-primary/30 bg-primary/5 p-5 flex flex-wrap items-center gap-4">
         <div className="w-10 h-10 rounded-xl bg-primary/15 text-primary flex items-center justify-center">
           <Sparkles className="w-5 h-5" />
@@ -90,28 +252,28 @@ function Dashboard() {
           <div className="text-sm text-muted-foreground">
             {empty
               ? "Connect a wallet to load live balances and see ArcPay's recommendation."
-              : "$11,304 idle in operating wallet. Sweep to Kamino USDC vault for ~8.2% APY."}
+              : tokenAccountCount
+                ? `${tokenAccountCount} SPL token account${tokenAccountCount === 1 ? "" : "s"} detected on ${mode}. Review yield or payment routes before signing.`
+                : `Wallet connected on ${mode}. No SPL token accounts found yet.`}
           </div>
         </div>
-        <Link to={empty ? "/sign-up" : "/app/yield"} className="text-sm font-medium px-4 py-2 rounded-full bg-primary text-primary-foreground hover:brightness-110">
-          {empty ? "Connect wallet" : "Review sweep"}
+        <Link to={empty ? "/app/wallet" : "/app/yield"} className="text-sm font-medium px-4 py-2 rounded-full bg-primary text-primary-foreground hover:brightness-110">
+          {empty ? "Connect wallet" : "Review routes"}
         </Link>
       </div>
 
-      {/* KPI grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard icon={Wallet} label="Operating" value={empty ? "—" : "$184,420"} hint={empty ? "Connect wallet to load live balance." : "USDC + PUSD + AUDD"} delta={empty ? undefined : { value: "2.3%", direction: "up" }} />
-        <StatCard icon={Lock} label="Shielded" value={empty ? "—" : "$62,910"} hint={empty ? "No shielded balance found." : "Cloak + Umbra routes"} delta={empty ? undefined : { value: "0.8%", direction: "up" }} />
-        <StatCard icon={Coins} label="Idle" value={empty ? "—" : "$11,304"} hint={empty ? "—" : "Sweep eligible"} delta={empty ? undefined : { value: "12%", direction: "down" }} />
-        <StatCard icon={TrendingUp} label="Yield running" value={empty ? "—" : "$48,200"} hint={empty ? "—" : "Kamino positions"} delta={empty ? undefined : { value: "8.2% APY", direction: "up" }} emphasis />
+        <StatCard icon={Wallet} label="Operating" value={empty ? "--" : operatingValue} hint={empty ? "Connect wallet to load live balance." : `Live ${mode} SOL balance`} />
+        <StatCard icon={Lock} label="Shielded" value={activity.filter((item) => item.kind === "out").length} hint="Privacy records saved" />
+        <StatCard icon={Coins} label="SPL tokens" value={empty ? "--" : tokenAccountCount ?? "--"} hint={empty ? "--" : tokenValue} />
+        <StatCard icon={TrendingUp} label="Yield running" value={activity.filter((item) => item.kind === "yield").length} hint="Provider-built yield actions" emphasis />
       </div>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        <StatCard icon={Send} label="Pending payments" value={empty ? "—" : "3"} hint={empty ? "—" : "$12,470 awaiting approval"} />
-        <StatCard icon={ShieldAlert} label="Risk queue" value={empty ? "—" : "2"} hint={empty ? "—" : "1 review · 1 watch"} />
-        <StatCard icon={RouteIcon} label="Routes available" value={empty ? "—" : "8"} hint={empty ? "Connect wallet to fetch routes." : "DFlow · Zerion · Kamino"} />
+        <StatCard icon={Send} label="Pending payments" value={approvals.length} hint={pendingAmount ? `${compactNumber(pendingAmount)} awaiting review` : "No pending approvals"} />
+        <StatCard icon={ShieldAlert} label="Risk queue" value={alerts.length} hint={alerts.length ? "Review contractor scores" : "No active alerts"} />
+        <StatCard icon={RouteIcon} label="Routes available" value={mode === "devnet" ? "8" : "5"} hint={mode === "devnet" ? "Devnet provider rails" : "Mainnet signer-gated rails"} />
       </div>
 
-      {/* Charts + alerts row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
         <div className="lg:col-span-2 rounded-2xl border border-border bg-card p-5">
           <div className="flex items-center justify-between mb-4">
@@ -125,13 +287,13 @@ function Dashboard() {
             </div>
           </div>
           <div className="h-64">
-            {empty || !mounted ? (
+            {empty || !mounted || flow.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground text-sm">
                 <Wallet className="w-8 h-8 mb-3 opacity-50" />
-                {empty ? "Connect wallet to load 24h flow." : "Loading 24h flow."}
+                {empty ? "Connect wallet to load 24h flow." : loading ? "Loading live workspace flow." : "No payment, invoice, or privacy records yet."}
               </div>
             ) : (
-              <FlowChart />
+              <FlowChart data={flow} />
             )}
           </div>
         </div>
@@ -139,22 +301,22 @@ function Dashboard() {
         <div className="rounded-2xl border border-border bg-card p-5 flex flex-col">
           <div className="text-xs uppercase tracking-wider text-muted-foreground mb-4">Pending approvals</div>
           <div className="flex-1 flex flex-col gap-2">
-            {empty ? (
+            {approvals.length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center text-center text-muted-foreground text-sm">
                 <CheckCircle2 className="w-7 h-7 mb-2 opacity-40" />
                 Nothing pending.
               </div>
             ) : (
-              APPROVALS_PLACEHOLDER.map((a) => (
-                <div key={a.who} className="flex items-center justify-between rounded-xl bg-muted px-3 py-3">
+              approvals.map((approval) => (
+                <div key={`${approval.who}-${approval.amt}`} className="flex items-center justify-between rounded-xl bg-muted px-3 py-3">
                   <div className="min-w-0">
-                    <div className="text-sm font-medium truncate">{a.who}</div>
-                    <div className="text-xs text-muted-foreground">{a.amt}</div>
+                    <div className="text-sm font-medium truncate">{approval.who}</div>
+                    <div className="text-xs text-muted-foreground">{approval.amt}</div>
                   </div>
                   <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${
-                    a.risk === "Approve" ? "bg-success/15 text-success" : "bg-warning/30 text-warning-foreground"
+                    approval.risk === "Approve" ? "bg-success/15 text-success" : "bg-warning/30 text-warning-foreground"
                   }`}>
-                    {a.risk}
+                    {approval.risk}
                   </span>
                 </div>
               ))
@@ -163,7 +325,6 @@ function Dashboard() {
         </div>
       </div>
 
-      {/* Activity + alerts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
         <div className="lg:col-span-2 rounded-2xl border border-border bg-card overflow-hidden">
           <div className="flex items-center justify-between p-5 pb-3">
@@ -175,11 +336,12 @@ function Dashboard() {
           </div>
           {empty ? (
             <div className="p-10 text-center text-muted-foreground text-sm">
-              Connect wallet to stream live activity (powered by QuickNode webhooks).
+              {loading ? "Loading live activity..." : "Connect wallet and create a payment, invoice, or privacy action to populate activity."}
             </div>
           ) : (
             <div className="divide-y divide-border">
-              {ACTIVITY_PLACEHOLDER.map((row) => (
+              {activity.length === 0 && <div className="p-8 text-center text-sm text-muted-foreground">No live workspace activity yet.</div>}
+              {activity.map((row) => (
                 <div key={row.id} className="flex items-center justify-between gap-4 px-5 py-3.5 hover:bg-muted/40 transition-colors">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
@@ -195,7 +357,7 @@ function Dashboard() {
                     </div>
                     <div className="min-w-0">
                       <div className="text-sm font-medium truncate">{row.who}</div>
-                      <div className="text-xs text-muted-foreground">{row.time} · {row.net}</div>
+                      <div className="text-xs text-muted-foreground">{row.time} - {row.net}</div>
                     </div>
                   </div>
                   <div className="text-sm font-medium font-mono">{row.amt}</div>
@@ -208,15 +370,20 @@ function Dashboard() {
         <div className="rounded-2xl border border-border bg-card p-5">
           <div className="text-xs uppercase tracking-wider text-muted-foreground mb-4">Risk alerts</div>
           <div className="flex flex-col gap-3">
-            {ALERTS_PLACEHOLDER.map((a, i) => (
-              <div key={i} className={`rounded-xl p-4 border ${
-                a.level === "warn" ? "bg-warning/10 border-warning/30" : "bg-muted border-border"
+            {alerts.length === 0 && (
+              <div className="rounded-xl border border-border bg-muted p-4 text-sm text-muted-foreground">
+                No active risk alerts from saved contractor scores.
+              </div>
+            )}
+            {alerts.map((alert) => (
+              <div key={`${alert.who}-${alert.txt}`} className={`rounded-xl p-4 border ${
+                alert.level === "warn" ? "bg-warning/10 border-warning/30" : "bg-muted border-border"
               }`}>
                 <div className="flex items-start gap-2">
-                  <AlertTriangle className={`w-4 h-4 mt-0.5 ${a.level === "warn" ? "text-warning-foreground" : "text-muted-foreground"}`} />
+                  <AlertTriangle className={`w-4 h-4 mt-0.5 ${alert.level === "warn" ? "text-warning-foreground" : "text-muted-foreground"}`} />
                   <div className="flex-1">
-                    <div className="text-sm font-medium">{a.who}</div>
-                    <div className="text-xs text-muted-foreground mt-1 leading-relaxed">{a.txt}</div>
+                    <div className="text-sm font-medium">{alert.who}</div>
+                    <div className="text-xs text-muted-foreground mt-1 leading-relaxed">{alert.txt}</div>
                   </div>
                 </div>
               </div>
@@ -228,15 +395,15 @@ function Dashboard() {
   );
 }
 
-function FlowChart() {
+function FlowChart({ data }: { readonly data: readonly FlowPoint[] }) {
   const width = 760;
   const height = 240;
   const padX = 26;
   const padY = 20;
-  const max = Math.max(...FLOW_PLACEHOLDER.flatMap((row) => [row.in, row.out]));
+  const max = Math.max(1, ...data.flatMap((row) => [row.in, row.out]));
   const points = (key: "in" | "out") =>
-    FLOW_PLACEHOLDER.map((row, index) => {
-      const x = padX + (index / (FLOW_PLACEHOLDER.length - 1)) * (width - padX * 2);
+    data.map((row, index) => {
+      const x = padX + (index / Math.max(1, data.length - 1)) * (width - padX * 2);
       const y = height - padY - (row[key] / max) * (height - padY * 2);
       return `${x},${y}`;
     }).join(" ");
@@ -263,4 +430,53 @@ function FlowChart() {
       <polyline points={points("out")} fill="none" stroke="oklch(0.85 0.13 85)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" />
     </svg>
   );
+}
+
+function buildFlow(activity: readonly DashboardActivity[]): FlowPoint[] {
+  const now = new Date();
+  const buckets = Array.from({ length: 8 }, (_, index) => {
+    const hour = new Date(now.getTime() - (7 - index) * 3 * 60 * 60 * 1000);
+    return { t: hour.getHours().toString().padStart(2, "0"), in: 0, out: 0 };
+  });
+
+  for (const item of activity) {
+    const ageHours = (now.getTime() - Date.parse(item.createdAt)) / 3_600_000;
+    if (ageHours < 0 || ageHours > 24) continue;
+    const index = Math.min(7, Math.max(0, 7 - Math.floor(ageHours / 3)));
+    buckets[index]![item.direction] += item.amount;
+  }
+
+  return buckets.filter((bucket) => bucket.in > 0 || bucket.out > 0);
+}
+
+function firstName(value: string) {
+  return value.trim().split(/\s+/)[0] || "operator";
+}
+
+function formatAmount(amount: number, token: string) {
+  return `${compactNumber(amount)} ${token}`;
+}
+
+function compactNumber(value: number) {
+  return new Intl.NumberFormat("en", { maximumFractionDigits: 4 }).format(value);
+}
+
+function readMoney(value: string) {
+  const match = value.replaceAll(",", "").match(/-?\d+(\.\d+)?/);
+  return match ? Number(match[0]) : 0;
+}
+
+function shortAddress(value: string) {
+  return value.length > 10 ? `${value.slice(0, 4)}...${value.slice(-4)}` : value;
+}
+
+function relativeTime(value: string) {
+  const delta = Date.now() - Date.parse(value);
+  if (!Number.isFinite(delta)) return new Date(value).toLocaleString();
+  const minutes = Math.max(0, Math.floor(delta / 60_000));
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
 }

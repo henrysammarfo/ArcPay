@@ -4,6 +4,7 @@ import { Settings as SettingsIcon, Bell, Globe2, KeyRound, ShieldCheck } from "l
 import { PageHeader } from "@/components/app/PageHeader";
 import { useNetwork } from "@/store/network";
 import { getOptionalSupabaseClient } from "../../app/supabase-client";
+import { ensureCurrentUserAccount } from "@/lib/account";
 
 export const Route = createFileRoute("/app/settings")({
   head: () => ({ meta: [{ title: "Settings - ArcPay" }] }),
@@ -59,6 +60,7 @@ function SettingsPage() {
         return;
       }
 
+      const account = await ensureCurrentUserAccount(supabase);
       const { data: auth } = await supabase.auth.getUser();
       const user = auth.user;
       if (!mounted) return;
@@ -66,6 +68,7 @@ function SettingsPage() {
       setUserId(user?.id ?? null);
 
       if (!user) return;
+      if (account?.workspaceName) setWorkspaceName(account.workspaceName);
 
       const { data, error } = await supabase
         .from("user_workspace_settings")
@@ -89,6 +92,8 @@ function SettingsPage() {
         setRequireWallet(data.require_wallet_for_actions);
         setIntegrations({ ...DEFAULT_INTEGRATIONS, ...data.enabled_integrations });
         setStatus("Settings loaded.");
+      } else {
+        setStatus("Default settings created for this workspace.");
       }
     }
 

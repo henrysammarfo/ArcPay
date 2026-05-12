@@ -10,6 +10,7 @@ import { getOptionalSupabaseClient } from "../../app/supabase-client";
 import { PageHeader } from "@/components/app/PageHeader";
 import { ReviewModal } from "@/components/primitives/ReviewModal";
 import { StatCard } from "@/components/primitives/StatCard";
+import { useNetwork } from "@/store/network";
 
 export const Route = createFileRoute("/app/invoices")({
   head: () => ({ meta: [{ title: "Invoices - ArcPay" }] }),
@@ -17,6 +18,10 @@ export const Route = createFileRoute("/app/invoices")({
 });
 
 const TOKENS = ["USDC", "AUDD", "PUSD", "SOL"] as const;
+const TOKENS_BY_NETWORK = {
+  devnet: ["USDC", "AUDD", "SOL"],
+  mainnet: ["USDC", "PUSD", "SOL"],
+} as const;
 
 const schema = z.object({
   client: z.string().trim().min(2, "Client name required").max(80),
@@ -42,6 +47,8 @@ type Invoice = {
 };
 
 function InvoicesPage() {
+  const network = useNetwork((state) => state.mode);
+  const tokenOptions = TOKENS_BY_NETWORK[network];
   const [items, setItems] = useState<Invoice[]>([]);
   const [open, setOpen] = useState(false);
   const [review, setReview] = useState<Form | null>(null);
@@ -148,7 +155,7 @@ function InvoicesPage() {
         icon={FileText}
         eyebrow="Treasury"
         title="Invoices"
-        description="Generate persisted invoices with pay-links and due dates. Payment settlement can be updated by webhook or operator review."
+        description={`Generate persisted ${network} invoices with pay-links and due dates. Payment settlement can be updated by webhook or operator review.`}
         actions={
           <button onClick={() => setOpen(true)} className="inline-flex items-center gap-2 rounded-full bg-foreground px-4 py-2.5 text-sm font-medium text-background hover:opacity-90">
             <Plus className="h-4 w-4" /> New invoice
@@ -211,7 +218,7 @@ function InvoicesPage() {
               <Field label="Email" error={errors.email?.message}><input type="email" {...register("email")} className="ap-input" placeholder="ap@acme.io" /></Field>
               <div className="grid grid-cols-3 gap-2">
                 <Field label="Amount" error={errors.amount?.message} className="col-span-2"><input type="number" step="0.01" {...register("amount")} className="ap-input" placeholder="0.00" /></Field>
-                <Field label="Token"><select {...register("token")} className="ap-input">{TOKENS.map((token) => <option key={token}>{token}</option>)}</select></Field>
+                <Field label="Token"><select {...register("token")} className="ap-input">{tokenOptions.map((token) => <option key={token}>{token}</option>)}</select></Field>
               </div>
               <Field label="Due date" error={errors.due?.message}><input type="date" {...register("due")} className="ap-input" /></Field>
               <Field label="Memo" error={errors.memo?.message}><textarea rows={3} {...register("memo")} className="ap-input resize-none" placeholder="Notes for the client" /></Field>

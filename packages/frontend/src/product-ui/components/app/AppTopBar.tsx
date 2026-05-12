@@ -15,6 +15,7 @@ import { useNetwork } from "@/store/network";
 import { CommandPalette } from "./CommandPalette";
 import { getOptionalSupabaseClient } from "../../../app/supabase-client";
 import { useWalletConnectAction } from "@/hooks/use-wallet-connect-action";
+import { ensureCurrentUserAccount } from "@/lib/account";
 
 export function AppTopBar() {
   const mode = useNetwork((s) => s.mode);
@@ -22,6 +23,7 @@ export function AppTopBar() {
   const [openCmd, setOpenCmd] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState<string>("");
+  const [workspaceName, setWorkspaceName] = useState("Multi-agent agency");
   const wallet = useWallet();
   const walletAction = useWalletConnectAction();
   const walletAddress = wallet.publicKey?.toBase58() ?? null;
@@ -32,32 +34,27 @@ export function AppTopBar() {
 
     async function loadAccount() {
       if (!supabase) return;
-      const { data } = await supabase.auth.getUser();
+      const account = await ensureCurrentUserAccount(supabase);
       if (!mounted) return;
-      const user = data.user;
-      setEmail(user?.email ?? null);
-
-      if (!user) {
+      if (!account) {
+        setEmail(null);
         setDisplayName("");
+        setWorkspaceName("Multi-agent agency");
         return;
       }
-
-      const { data: profile } = await supabase
-        .from("user_profiles")
-        .select("display_name")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (mounted) {
-        setDisplayName(profile?.display_name ?? "");
-      }
+      setEmail(account.email);
+      setDisplayName(account.displayName);
+      setWorkspaceName(account.workspaceName);
     }
 
     void loadAccount();
 
     const { data: listener } = supabase?.auth.onAuthStateChange((_event, session) => {
       setEmail(session?.user.email ?? null);
-      if (!session?.user) setDisplayName("");
+      if (!session?.user) {
+        setDisplayName("");
+        setWorkspaceName("Multi-agent agency");
+      }
       else void loadAccount();
     }) ?? { data: { subscription: { unsubscribe: () => undefined } } };
 
@@ -105,6 +102,7 @@ export function AppTopBar() {
     if (supabase) await supabase.auth.signOut();
     setEmail(null);
     setDisplayName("");
+    setWorkspaceName("Multi-agent agency");
   }
 
   return (
@@ -118,7 +116,7 @@ export function AppTopBar() {
           className="hidden sm:flex items-center gap-2 text-sm font-medium px-3 py-1.5 rounded-lg hover:bg-muted transition-colors"
         >
           <Building2 className="w-4 h-4 text-muted-foreground" />
-          <span>Multi-agent agency</span>
+          <span>{workspaceName}</span>
           <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
         </button>
 
@@ -208,10 +206,6 @@ export function AppTopBar() {
       <CommandPalette open={openCmd} onOpenChange={setOpenCmd} />
     </>
   );
-}
-
-function short(value: string) {
-  return `${value.slice(0, 4)}...${value.slice(-4)}`;
 }
 
 function initial(value: string | null) {

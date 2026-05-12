@@ -10,6 +10,7 @@ import { getOptionalSupabaseClient } from "../../app/supabase-client";
 import { PageHeader } from "@/components/app/PageHeader";
 import { ReviewModal, type ReviewRow } from "@/components/primitives/ReviewModal";
 import { StatCard } from "@/components/primitives/StatCard";
+import { useNetwork } from "@/store/network";
 
 export const Route = createFileRoute("/app/payments")({
   head: () => ({ meta: [{ title: "Payments - ArcPay" }] }),
@@ -17,6 +18,10 @@ export const Route = createFileRoute("/app/payments")({
 });
 
 const TOKENS = ["USDC", "AUDD", "PUSD", "SOL"] as const;
+const TOKENS_BY_NETWORK = {
+  devnet: ["USDC", "AUDD", "SOL"],
+  mainnet: ["USDC", "PUSD", "SOL"],
+} as const;
 const ROUTING = [
   { id: "operating", label: "Operating wallet", desc: "Keep liquid for spend" },
   { id: "shield", label: "Shielded sub-account", desc: "Cloak / Umbra route" },
@@ -45,6 +50,8 @@ type RequestRow = {
 };
 
 function PaymentsPage() {
+  const network = useNetwork((state) => state.mode);
+  const tokenOptions = TOKENS_BY_NETWORK[network];
   const [items, setItems] = useState<RequestRow[]>([]);
   const [open, setOpen] = useState(false);
   const [review, setReview] = useState<Form | null>(null);
@@ -173,7 +180,7 @@ function PaymentsPage() {
         icon={Send}
         eyebrow="Treasury"
         title="Payments"
-        description="Create persisted payment requests and stored pay-links. Settlement status is ready for QuickNode webhook updates."
+        description={`Create persisted ${network} payment requests and stored pay-links. Settlement status is ready for QuickNode webhook updates.`}
         actions={
           <button onClick={() => setOpen(true)} className="inline-flex items-center gap-2 rounded-full bg-foreground px-4 py-2.5 text-sm font-medium text-background hover:opacity-90">
             <Plus className="h-4 w-4" /> New request
@@ -240,7 +247,7 @@ function PaymentsPage() {
                 <div className="mt-1.5 flex gap-2">
                   <input type="number" step="0.01" {...register("amount")} className="flex-1 rounded-xl border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring" placeholder="0.00" />
                   <select {...register("token")} className="rounded-xl border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
-                    {TOKENS.map((token) => <option key={token}>{token}</option>)}
+                    {tokenOptions.map((token) => <option key={token}>{token}</option>)}
                   </select>
                 </div>
                 {errors.amount && <p className="mt-1.5 text-xs text-destructive">{errors.amount.message}</p>}

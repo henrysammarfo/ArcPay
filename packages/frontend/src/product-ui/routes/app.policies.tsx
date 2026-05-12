@@ -27,15 +27,15 @@ type PolicySettings = {
 };
 
 const DEFAULT_POLICY_SETTINGS: PolicySettings = {
-  allowlist: ["7Hk3R...9bX2Lq", "9Tu4Q...2qPkVm"],
-  blocked: ["Yield withdraw"],
-  daily: 50000,
+  allowlist: [],
+  blocked: [],
+  daily: 0,
   minScore: 60,
-  networks: ["Mainnet"],
+  networks: ["Devnet"],
   paused: false,
-  perTx: 15000,
-  requireApproval: 2500,
-  tokens: ["USDC", "AUDD", "PUSD"],
+  perTx: 0,
+  requireApproval: 0,
+  tokens: ["USDC"],
 };
 
 function parsePolicySettings(value: unknown): PolicySettings | null {
@@ -238,7 +238,7 @@ function PoliciesPage() {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card title="Spend limits" desc="Caps applied across the workspace.">
+        <Card title="Spend limits" desc="$0 is valid and blocks the matching spend path.">
           <Slider label="Daily spend limit" value={daily} onChange={onChange(setDaily)} max={250000} step={1000} format={(v) => `$${v.toLocaleString()}`} />
           <Slider label="Per-transaction max" value={perTx} onChange={onChange(setPerTx)} max={100000} step={500} format={(v) => `$${v.toLocaleString()}`} />
           <Slider label="Require human approval over" value={requireApproval} onChange={onChange(setRequireApproval)} max={50000} step={500} format={(v) => `$${v.toLocaleString()}`} />
@@ -257,7 +257,7 @@ function PoliciesPage() {
           </div>
         </Card>
 
-        <Card title="Allowed networks" desc="Lock movement to specific Solana clusters.">
+        <Card title="Allowed networks" desc="Lock movement to specific Solana clusters. Mainnet actions stay wallet-signer gated.">
           <div className="flex flex-wrap gap-2">
             {NETWORKS.map((n) => (
               <button key={n} onClick={() => toggle(networks, setNetworks)(n)} className={`px-3 py-1.5 rounded-full text-xs font-medium ${networks.includes(n) ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/70"}`}>{n}</button>

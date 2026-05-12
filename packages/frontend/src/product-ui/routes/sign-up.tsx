@@ -3,6 +3,7 @@ import { useState, type FormEvent } from "react";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { Divider, Field, PasswordField, WalletConnectButton } from "@/components/auth/FormFields";
 import { getOptionalSupabaseClient } from "../../app/supabase-client";
+import { ensureCurrentUserAccount } from "@/lib/account";
 
 export const Route = createFileRoute("/sign-up")({
   head: () => ({
@@ -55,6 +56,7 @@ function SignUp() {
     }
 
     if (data.session) {
+      await ensureCurrentUserAccount(supabase);
       navigate({ to: "/app/dashboard" });
       return;
     }

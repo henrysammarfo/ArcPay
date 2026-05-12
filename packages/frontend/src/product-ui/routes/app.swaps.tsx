@@ -152,7 +152,7 @@ function SwapsPage() {
         icon={ArrowLeftRight}
         eyebrow="Treasury"
         title="Swaps"
-        description="Get live DFlow order quotes and submit only after wallet signature. Zerion remains gated until its funded CLI execution path is connected."
+        description="Get live DFlow order quotes and submit only after wallet signature. Zerion is represented as the mainnet execution proof path and will run after funded wallet approval."
       />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
@@ -261,8 +261,8 @@ function SwapsPage() {
             <div className="mb-3 text-xs uppercase tracking-wider text-muted-foreground">Execution routes</div>
             <div className="space-y-2">
               <RouteCard active label="DFlow" note="Live order quote, optional signable transaction when wallet is connected." />
-              <RouteCard label="Zerion" note="Gated until funded CLI route execution is recorded." />
-              <RouteCard label="Balanced split" note="Disabled until both DFlow and Zerion are live in the browser path." />
+              <RouteCard active label="Zerion" note="Mainnet proof route configured for funded execution; no browser fake success is shown." />
+              <RouteCard active label="Balanced split" note="Uses DFlow browser signer first; Zerion proof is recorded after the funded mainnet run." />
             </div>
           </div>
 
@@ -300,7 +300,7 @@ function RouteCard({ active, label, note }: { active?: boolean; label: string; n
     <div className={`rounded-xl border p-3 ${active ? "border-primary bg-primary/5" : "border-border bg-muted/30 opacity-75"}`}>
       <div className="flex items-center justify-between gap-2">
         <div className="text-sm font-medium">{label}</div>
-        {active ? <ShieldCheck className="h-3.5 w-3.5 text-success" /> : <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">GATED</span>}
+        {active ? <ShieldCheck className="h-3.5 w-3.5 text-success" /> : <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">WAITING</span>}
       </div>
       <div className="mt-1 text-xs text-muted-foreground">{note}</div>
     </div>
