@@ -8,7 +8,7 @@ import { SectionHeading } from "@/components/primitives/SectionHeading";
 export const Route = createFileRoute("/proofs")({
   head: () => ({
     meta: [
-      { title: "Proofs — ArcPay developer evidence" },
+      { title: "Proofs - ArcPay developer evidence" },
       { name: "description", content: "Per-integration status: what's complete, what needs funds or keys." },
     ],
   }),
@@ -16,21 +16,29 @@ export const Route = createFileRoute("/proofs")({
 });
 
 type Status = "live" | "devnet" | "error" | "needs wallet";
+type ProofRow = {
+  provider: string;
+  surface: string;
+  status: Status;
+  note: string;
+  endpoint?: string;
+  autoCheck?: boolean;
+};
 
-const ROWS: { provider: string; surface: string; status: Status; note: string; endpoint?: string }[] = [
+const ROWS: ProofRow[] = [
   { provider: "QuickNode", surface: "RPC + webhook", status: "devnet", note: "Devnet RPC is configured through wallet/network pages." },
-  { provider: "MagicBlock", surface: "Private Payments", status: "devnet", note: "Live API route builds a private SPL deposit transaction.", endpoint: "/api/magicblock" },
+  { provider: "MagicBlock", surface: "Private Payments", status: "needs wallet", note: "Live route requires a connected wallet owner. Use Privacy -> Prepare shield to build the Private Payments transaction.", endpoint: "/api/magicblock" },
   { provider: "Torque", surface: "Custom events", status: "devnet", note: "Payment creation submits custom_events through Torque.", endpoint: "/api/torque" },
   { provider: "GoldRush", surface: "Counterparty risk", status: "live", note: "Risk page calls server-side GoldRush endpoint." },
   { provider: "DFlow", surface: "Swap routes", status: "live", note: "Swaps page gets live DFlow quotes and wallet-signable transactions." },
   { provider: "Kamino", surface: "Yield tx builder", status: "live", note: "Yield page calls Kamino deposit/withdraw transaction builder.", endpoint: "/api/kamino" },
   { provider: "LP Agent", surface: "Meteora positions", status: "live", note: "Yield page reads live LP Agent positions and server supports Zap-In transaction builds." },
-  { provider: "Cloak", surface: "Devnet shield proof", status: "devnet", note: "Privacy page checks Cloak program and recorded devnet proof signature.", endpoint: "/api/cloak" },
-  { provider: "Umbra", surface: "Indexer/private rail", status: "devnet", note: "Privacy page checks Umbra indexer route before recording actions.", endpoint: "/api/umbra" },
-  { provider: "Ika", surface: "dWallet policy approval", status: "devnet", note: "Privacy page checks Ika program/dWallet approval proof.", endpoint: "/api/ika" },
-  { provider: "PUSD", surface: "Stablecoin rail", status: "live", note: "PUSD route verifies official mint metadata and Palm circulation API.", endpoint: "/api/pusd" },
+  { provider: "Cloak", surface: "Devnet shield proof", status: "devnet", note: "Privacy page checks Cloak program and recorded devnet proof signature.", endpoint: "/api/cloak", autoCheck: true },
+  { provider: "Umbra", surface: "Indexer/private rail", status: "needs wallet", note: "Signer/provider gated. The Privacy flow records the real route response when a shield action is prepared.", endpoint: "/api/umbra" },
+  { provider: "Ika", surface: "dWallet policy approval", status: "devnet", note: "Privacy page checks Ika program/dWallet approval proof.", endpoint: "/api/ika", autoCheck: true },
+  { provider: "PUSD", surface: "Stablecoin rail", status: "live", note: "PUSD route verifies official mint metadata and Palm circulation API.", endpoint: "/api/pusd", autoCheck: true },
   { provider: "Zerion", surface: "CLI execution", status: "needs wallet", note: "Requires funded mainnet CLI transaction; API key is configured, but no browser signer route is claimed." },
-  { provider: "QVAC", surface: "Local treasury brain", status: "devnet", note: "Native Linux x64 backend runs a local QVAC model decision on demand.", endpoint: "/api/qvac" },
+  { provider: "QVAC", surface: "Local treasury brain", status: "devnet", note: "Native Linux x64 backend runs a local QVAC model decision on demand.", endpoint: "/api/qvac", autoCheck: true },
   { provider: "AUDD", surface: "AUD settlement", status: "live", note: "Supported payment token and routed through swap/payment policy pages." },
 ];
 
@@ -48,12 +56,10 @@ function ProofsPage() {
     let cancelled = false;
     async function load() {
       const checked = await Promise.all(ROWS.map(async (row) => {
-        if (!row.endpoint || row.endpoint === "/api/torque" || row.endpoint === "/api/kamino") return row;
+        if (!row.endpoint || !row.autoCheck) return row;
         try {
           const response = await fetch(row.endpoint, {
-            method: row.endpoint === "/api/magicblock" ? "POST" : "GET",
-            headers: row.endpoint === "/api/magicblock" ? { "content-type": "application/json" } : undefined,
-            body: row.endpoint === "/api/magicblock" ? JSON.stringify({ amount: 1_000_000 }) : undefined,
+            method: "GET",
             cache: "no-store",
           });
           const payload = (await response.json()) as {
@@ -101,7 +107,7 @@ function ProofsPage() {
           <SectionHeading
             eyebrow="Developer evidence"
             title={<>Proofs, separated from the <span className="text-primary">user dashboard</span>.</>}
-            description="This page is for judges and developers. Daily customers don't see it. Status is honest — devnet is devnet, pre-alpha is pre-alpha."
+            description="This page is for judges and developers. Daily customers don't see it. Status is honest - devnet is devnet, pre-alpha is pre-alpha."
           />
           <div className="mt-10 rounded-3xl border border-border bg-card overflow-hidden">
             <div className="hidden md:grid grid-cols-[1.2fr_1.4fr_140px_2fr] gap-4 px-6 py-4 text-xs uppercase tracking-[0.18em] text-muted-foreground border-b border-border">

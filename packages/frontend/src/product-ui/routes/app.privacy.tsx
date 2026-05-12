@@ -1,6 +1,7 @@
 "use client";
 
 import { createFileRoute } from "@tanstack/react-router";
+import { useWallet } from "@solana/wallet-adapter-react";
 import { Eye, EyeOff, KeyRound, Lock, Send, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getOptionalSupabaseClient } from "../../app/supabase-client";
@@ -42,6 +43,7 @@ type PrivacyEvent = {
 };
 
 function PrivacyPage() {
+  const wallet = useWallet();
   const network = useNetwork((state) => state.mode);
   const [events, setEvents] = useState<PrivacyEvent[]>([]);
   const [shieldOpen, setShieldOpen] = useState(false);
@@ -118,7 +120,7 @@ function PrivacyPage() {
     const route = visibleRoutes.find((item) => item.id === shieldRoute);
     if (!route) throw new Error(`No ${network} privacy route is enabled.`);
     const provider = route?.name ?? shieldRoute;
-    const providerResult = await callPrivacyProvider(shieldRoute, amount);
+    const providerResult = await callPrivacyProvider(shieldRoute, amount, wallet.publicKey?.toBase58());
     const { error } = await supabase.from("arcpay_privacy_events").insert({
       user_id: user.id,
       action: "shield",
@@ -333,18 +335,22 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 async function callPrivacyProvider(
   provider: string,
   amount: number,
+  owner?: string,
 ): Promise<{
   message: string;
   response: Record<string, unknown>;
   status: PrivacyEvent["status"];
 }> {
   const endpoint = endpointForProvider(provider);
+  if (provider === "magicblock" && !owner) {
+    throw new Error("Connect a wallet before preparing a MagicBlock private payment.");
+  }
   const init: RequestInit =
     provider === "magicblock"
       ? {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ amount: Math.round(amount * 1_000_000) }),
+          body: JSON.stringify({ amount: Math.round(amount * 1_000_000), owner }),
         }
       : { method: "GET" };
 
