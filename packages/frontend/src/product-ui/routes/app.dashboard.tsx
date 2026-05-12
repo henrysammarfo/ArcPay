@@ -141,10 +141,10 @@ function Dashboard() {
       }
 
       const [payments, invoices, privacy, contractors] = await Promise.all([
-        supabase.from("arcpay_payment_requests").select("id, amount, token, memo, route_to, status, created_at").order("created_at", { ascending: false }).limit(20),
-        supabase.from("arcpay_invoices").select("id, client, amount, token, status, created_at").order("created_at", { ascending: false }).limit(20),
-        supabase.from("arcpay_privacy_events").select("id, action, provider, amount, token, status, created_at").order("created_at", { ascending: false }).limit(20),
-        supabase.from("arcpay_contractors").select("id, name, wallet, risk_score, risk_status, created_at").order("created_at", { ascending: false }).limit(20),
+        supabase.from("arcpay_payment_requests").select("id, amount, token, memo, route_to, status, created_at").eq("network", mode).order("created_at", { ascending: false }).limit(20),
+        supabase.from("arcpay_invoices").select("id, client, amount, token, status, created_at").eq("network", mode).order("created_at", { ascending: false }).limit(20),
+        supabase.from("arcpay_privacy_events").select("id, action, provider, amount, token, status, created_at").eq("network", mode).order("created_at", { ascending: false }).limit(20),
+        supabase.from("arcpay_contractors").select("id, name, wallet, risk_score, risk_status, created_at").eq("network", mode).order("created_at", { ascending: false }).limit(20),
       ]);
 
       if (cancelled) return;

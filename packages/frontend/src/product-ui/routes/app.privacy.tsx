@@ -18,16 +18,17 @@ export const Route = createFileRoute("/app/privacy")({
 });
 
 const ROUTES = [
-  { id: "cloak", name: "Cloak", net: "devnet", status: "live", desc: "Checks Cloak devnet program plus recorded shield proof signature." },
-  { id: "magicblock", name: "MagicBlock", net: "devnet", status: "live", desc: "Builds a Private Payments SPL deposit transaction." },
-  { id: "umbra", name: "Umbra", net: "devnet", status: "live", desc: "Checks Umbra indexer reachability before recording a privacy action." },
-  { id: "ika", name: "Ika", net: "devnet", status: "live", desc: "Checks Ika pre-alpha program, dWallet, and approval proof config." },
-  { id: "pusd", name: "PUSD", net: "mainnet", status: "live", desc: "Verifies official PUSD mint metadata and Palm circulation API." },
+  { id: "cloak", name: "Cloak", net: "devnet", status: "live", token: "USDC", desc: "Checks Cloak devnet program plus recorded shield proof signature." },
+  { id: "magicblock", name: "MagicBlock", net: "devnet", status: "live", token: "USDC", desc: "Builds a Private Payments SPL deposit transaction." },
+  { id: "umbra", name: "Umbra", net: "devnet", status: "live", token: "USDC", desc: "Checks Umbra indexer reachability before recording a privacy action." },
+  { id: "ika", name: "Ika", net: "devnet", status: "live", token: "USDC", desc: "Checks Ika pre-alpha program, dWallet, and approval proof config." },
+  { id: "pusd", name: "PUSD", net: "mainnet", status: "live", token: "PUSD", desc: "Verifies official PUSD mint metadata and Palm circulation API." },
 ] as const satisfies readonly {
   readonly id: string;
   readonly name: string;
   readonly net: NetworkMode;
   readonly status: string;
+  readonly token: string;
   readonly desc: string;
 }[];
 
@@ -136,6 +137,7 @@ function PrivacyPage() {
     const route = visibleRoutes.find((item) => item.id === shieldRoute);
     if (!route) throw new Error(`No ${network} privacy route is enabled.`);
     const provider = route?.name ?? shieldRoute;
+    const token = route.token;
     const providerResult = await callPrivacyProvider(shieldRoute, amount, wallet.publicKey?.toBase58());
     const { error } = await supabase.from("arcpay_privacy_events").insert({
       user_id: user.id,
@@ -143,7 +145,7 @@ function PrivacyPage() {
       action: "shield",
       provider,
       amount,
-      token: "USDC",
+      token,
       status: providerResult.status,
       provider_response: providerResult.response,
     });
@@ -154,6 +156,16 @@ function PrivacyPage() {
   }
 
   async function createViewingKeyEvent() {
+    const recipientName = keyName.trim();
+    const recipientEmail = keyEmail.trim();
+    const scope = keyScope.trim();
+    const expiry = keyExpiry.trim();
+
+    if (!recipientName) throw new Error("Recipient name is required.");
+    if (!recipientEmail) throw new Error("Recipient email is required.");
+    if (!scope) throw new Error("Disclosure scope is required.");
+    if (!expiry) throw new Error("Expiry date is required.");
+
     const blockReason = checkActionPolicies({
       action: "Issue viewing key",
       network,
@@ -170,9 +182,9 @@ function PrivacyPage() {
       network,
       action: "viewing_key",
       provider: "ArcPay selective disclosure",
-      recipient_name: keyName,
-      recipient_email: keyEmail,
-      scope: keyExpiry ? `${keyScope} until ${keyExpiry}` : keyScope,
+      recipient_name: recipientName,
+      recipient_email: recipientEmail,
+      scope: `${scope} until ${expiry}`,
       status: "configured",
       provider_response: {
         note: "Viewing-key disclosure record created. Provider key export is signer-gated.",
@@ -196,7 +208,9 @@ function PrivacyPage() {
         icon={EyeOff}
         eyebrow="Treasury intelligence"
         title="Privacy"
-        description="Prepare shielded payment and selective-disclosure operations against live provider routes, then persist proof records in Supabase."
+        description={network === "devnet"
+          ? "Prepare shielded payment and selective-disclosure operations against live devnet provider routes, then persist proof records in Supabase."
+          : "Verify mainnet privacy and stable-rail routes, then persist proof records in Supabase."}
       />
 
       <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -213,8 +227,12 @@ function PrivacyPage() {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="rounded-2xl bg-surface-dark p-6 text-surface-dark-foreground">
           <div className="mb-2 text-xs uppercase tracking-wider text-white/50">Shield funds</div>
-          <h2 className="text-2xl font-medium tracking-tight" style={{ letterSpacing: "-0.02em" }}>Prepare a stealth-pool deposit</h2>
-          <p className="mt-2 text-sm text-white/60">ArcPay reaches the selected provider first, then records the exact provider response. No fake transaction success is written.</p>
+          <h2 className="text-2xl font-medium tracking-tight" style={{ letterSpacing: "-0.02em" }}>
+            {network === "devnet" ? "Prepare a stealth-pool deposit" : "Verify a privacy rail"}
+          </h2>
+          <p className="mt-2 text-sm text-white/60">
+            ArcPay reaches the selected provider first, then records the exact provider response. No fake transaction success is written.
+          </p>
           <button onClick={() => setShieldOpen(true)} className="mt-4 inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:brightness-110">
             Prepare shield <Send className="h-3.5 w-3.5" />
           </button>
@@ -272,7 +290,7 @@ function PrivacyPage() {
         <Sheet onClose={() => setShieldOpen(false)} title="Prepare shield">
           <div className="space-y-4">
             <div>
-              <Label>Amount (USDC)</Label>
+              <Label>Amount ({visibleRoutes.find((route) => route.id === shieldRoute)?.token ?? "USDC"})</Label>
               <input value={shieldAmt} onChange={(event) => setShieldAmt(event.target.value)} type="number" step="0.01" placeholder="0.00" className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring" />
             </div>
             <div>
@@ -298,7 +316,13 @@ function PrivacyPage() {
             <Field label="Email"><input value={keyEmail} onChange={(event) => setKeyEmail(event.target.value)} type="email" className="ap-in" placeholder="auditor@firm.com" /></Field>
             <Field label="Scope"><select value={keyScope} onChange={(event) => setKeyScope(event.target.value)} className="ap-in"><option>Full ledger</option><option>Payroll only</option><option>Revenue only</option><option>Single transaction</option></select></Field>
             <Field label="Expires"><input value={keyExpiry} onChange={(event) => setKeyExpiry(event.target.value)} type="date" className="ap-in" /></Field>
-            <button onClick={() => { setKeyOpen(false); setReview("key"); }} className="w-full rounded-full bg-primary py-3 text-sm font-medium text-primary-foreground hover:brightness-110">Review disclosure</button>
+            <button
+              onClick={() => { setKeyOpen(false); setReview("key"); }}
+              disabled={!keyName.trim() || !keyEmail.trim() || !keyScope.trim() || !keyExpiry.trim()}
+              className="w-full rounded-full bg-primary py-3 text-sm font-medium text-primary-foreground hover:brightness-110 disabled:opacity-50"
+            >
+              Review disclosure
+            </button>
             <style>{`.ap-in{width:100%;border-radius:0.75rem;border:1px solid var(--border);background:var(--background);padding:0.625rem 0.75rem;font-size:0.875rem;outline:none}.ap-in:focus{box-shadow:0 0 0 2px var(--ring)}`}</style>
           </div>
         </Sheet>
@@ -310,7 +334,7 @@ function PrivacyPage() {
         title="Review shield record"
         description="This calls the selected live provider route before saving the proof record."
         rows={[
-          { label: "Amount", value: `${Number.parseFloat(shieldAmt || "0").toLocaleString()} USDC`, mono: true },
+          { label: "Amount", value: `${Number.parseFloat(shieldAmt || "0").toLocaleString()} ${visibleRoutes.find((route) => route.id === shieldRoute)?.token ?? "USDC"}`, mono: true },
           { label: "Route", value: visibleRoutes.find((route) => route.id === shieldRoute)?.name ?? shieldRoute },
           { label: "Provider call", value: "Required before save", warn: true },
         ]}
@@ -327,6 +351,7 @@ function PrivacyPage() {
           { label: "Recipient", value: keyName || "Not set" },
           { label: "Email", value: keyEmail || "Not set" },
           { label: "Scope", value: keyScope },
+          { label: "Expiry", value: keyExpiry || "Not set" },
         ]}
         warnings={["Provider-specific key export remains signer-gated."]}
         confirmLabel="Save disclosure"

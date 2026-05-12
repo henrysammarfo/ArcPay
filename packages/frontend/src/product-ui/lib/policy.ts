@@ -30,11 +30,11 @@ export const DEFAULT_POLICY_SETTINGS: PolicySettings = {
   blocked: [],
   daily: 0,
   minScore: 60,
-  networks: ["Devnet"],
+  networks: ["Devnet", "Mainnet"],
   paused: false,
   perTx: 0,
   requireApproval: 0,
-  tokens: ["USDC"],
+  tokens: ["USDC", "AUDD", "PUSD", "SOL"],
 };
 
 export const DEFAULT_WORKSPACE_SETTINGS: WorkspaceSettingsSnapshot = {
@@ -140,13 +140,13 @@ export function checkActionPolicies(args: PolicyCheckArgs): string | null {
   }
 
   if (typeof args.amount === "number" && args.amount > 0) {
-    if (policies.perTx >= 0 && args.amount > policies.perTx) {
+    if (policies.perTx > 0 && args.amount > policies.perTx) {
       return `Amount exceeds per-transaction limit of $${policies.perTx.toLocaleString()}.`;
     }
-    if (policies.daily >= 0 && args.amount > policies.daily) {
+    if (policies.daily > 0 && args.amount > policies.daily) {
       return `Amount exceeds daily limit of $${policies.daily.toLocaleString()}.`;
     }
-    if (policies.requireApproval >= 0 && args.amount > policies.requireApproval) {
+    if (policies.requireApproval > 0 && args.amount > policies.requireApproval) {
       return `Amount requires approval because it is above $${policies.requireApproval.toLocaleString()}.`;
     }
   }
