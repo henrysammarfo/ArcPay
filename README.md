@@ -7,12 +7,14 @@ or explicit blockers.
 
 ## Judge Start Path
 
-1. Read `docs/track-submission-checklist.md` for the current completion matrix.
-2. Read `docs/smoke-test.md` for transaction signatures and live API proof output.
-3. Read `docs/production-readiness.md` for build, browser, audit, and Anchor checks.
-4. Read `docs/funded-proof-safety-plan.md` before any mainnet transaction.
-5. Run the proof commands below for the tracks you are judging.
-6. Open the frontend dashboard to see user-facing treasury flows.
+1. Read `docs/judges-guide.md` for the shortest repo walkthrough.
+2. Read `docs/track-proof-index.md` for the exact track-to-proof map.
+3. Read `docs/smoke-test.md` for transaction signatures and live API proof output.
+4. Read `docs/track-submission-checklist.md` for the current completion matrix.
+5. Read `docs/production-readiness.md` for build, browser, audit, and Anchor checks.
+6. Read `docs/funded-proof-safety-plan.md` before any mainnet transaction.
+7. Run the proof commands below for the tracks you are judging.
+8. Open the frontend dashboard to see user-facing treasury flows.
 
 ```bash
 npm install
@@ -109,6 +111,8 @@ tested, while WSL is currently untested.
 
 | File | Purpose |
 | --- | --- |
+| `docs/judges-guide.md` | Shortest path for judges to run the app, find routes, and understand honest track status. |
+| `docs/track-proof-index.md` | Exact map from each track to code, docs, proof commands, and current status. |
 | `ArcPay_Build_Bible.txt` | Original product vision and track thesis. |
 | `docs/product-ui-brief.md` | Product/UI brief for replacing the dashboard with a real consumer/enterprise treasury app. |
 | `docs/track-submission-checklist.md` | Track-by-track eligibility, proof status, and final artifacts. |

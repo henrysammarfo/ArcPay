@@ -1,0 +1,39 @@
+ArcPay - Agentic Engineering Grant
+
+Founder: Henry Sammarfo
+Project: ArcPay
+
+Live app:
+https://arc-pay-frontend.vercel.app/
+
+GitHub:
+https://github.com/henrysammarfo/ArcPay
+
+Colosseum profile:
+https://arena.colosseum.org/projects/explore/arcpay
+
+Project Details
+ArcPay is a wallet-first private treasury operating system for AI-agent businesses on Solana.
+
+AI-native teams can earn revenue, pay contractors, manage treasury, and route capital across DeFi, but their operational stack is still fragmented across public wallets, spreadsheets, manual reviews, and disconnected tooling. That makes agent-driven finance hard to control, hard to audit, and risky to scale.
+
+ArcPay solves this by giving operators one control layer for treasury actions: onboarding, wallet-linked identity, payments, invoices, contractor management, counterparty risk checks, policy enforcement, privacy operations, yield and swap routing, and audit records.
+
+The next milestone is to deepen the agentic layer itself: turn ArcPay into a persistent treasury copilot that can monitor balances, score counterparties, enforce treasury policy in real time, prepare recommended actions, and coordinate execution across live Solana integrations.
+
+Proof of Work
+https://terrasignal.vercel.app
+https://aria-the-research-oracle.vercel.app/
+https://civiclift.lovable.app
+https://arc-pay-frontend.vercel.app/
+https://github.com/henrysammarfo/ArcPay
+
+I ship fast and publicly. ArcPay itself was built and deployed under hackathon pressure with live integrations, wallet flows, backend services, and policy-aware treasury features.
+
+Milestones
+Target deadline: May 19, 2026
+
+1. Stabilize wallet-first onboarding and identity linking.
+2. Strengthen persistent treasury copilot behavior for monitoring and recommendations.
+3. Improve policy-aware execution across payments, risk, privacy, and treasury actions.
+4. Harden production deployment, reliability, and operator UX.
