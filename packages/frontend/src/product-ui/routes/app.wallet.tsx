@@ -107,7 +107,12 @@ function WalletPage() {
       setMessage(`Live balances loaded from ${mode === "mainnet" ? "mainnet-beta" : "devnet"}.`);
     } catch (error) {
       setStatus("error");
-      setMessage(error instanceof Error ? error.message : "Unable to load wallet balances.");
+      const baseMessage = error instanceof Error ? error.message : "Unable to load wallet balances.";
+      if (mode === "mainnet" && /403|forbidden/i.test(baseMessage)) {
+        setMessage("Mainnet RPC rejected the request. Set NEXT_PUBLIC_MAINNET_RPC_URL in Vercel to a real Solana mainnet endpoint such as your QuickNode mainnet URL.");
+      } else {
+        setMessage(baseMessage);
+      }
       setSolBalance(null);
       setTokenAccounts([]);
     }

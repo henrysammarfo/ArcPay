@@ -199,7 +199,7 @@ function PoliciesPage() {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card title="Spend limits" desc="$0 is valid and blocks the matching spend path.">
+        <Card title="Spend limits" desc="Set values above $0 to enforce them. Leave at $0 to keep that limit disabled.">
           <Slider label="Daily spend limit" value={daily} onChange={onChange(setDaily)} max={250000} step={1000} format={(v) => `$${v.toLocaleString()}`} />
           <Slider label="Per-transaction max" value={perTx} onChange={onChange(setPerTx)} max={100000} step={500} format={(v) => `$${v.toLocaleString()}`} />
           <Slider label="Require human approval over" value={requireApproval} onChange={onChange(setRequireApproval)} max={50000} step={500} format={(v) => `$${v.toLocaleString()}`} />

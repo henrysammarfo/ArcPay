@@ -113,6 +113,7 @@ type PolicyCheckArgs = {
   amount?: number;
   token?: string;
   walletConnected?: boolean;
+  requireWallet?: boolean;
   counterpartyWallets?: string[];
   minObservedScore?: number | null;
 };
@@ -121,7 +122,7 @@ export function checkActionPolicies(args: PolicyCheckArgs): string | null {
   const workspace = loadWorkspaceSettingsSnapshot();
   const policies = loadSavedPolicySettings();
 
-  if (workspace.requireWalletForActions && !args.walletConnected) {
+  if ((args.requireWallet ?? true) && workspace.requireWalletForActions && !args.walletConnected) {
     return "Connect a wallet before running this action.";
   }
 

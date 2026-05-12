@@ -10,6 +10,7 @@ import { getOptionalSupabaseClient } from "../../app/supabase-client";
 import { PageHeader } from "@/components/app/PageHeader";
 import { ReviewModal } from "@/components/primitives/ReviewModal";
 import { StatCard } from "@/components/primitives/StatCard";
+import { checkActionPolicies } from "@/lib/policy";
 import { useNetwork } from "@/store/network";
 
 export const Route = createFileRoute("/app/invoices")({
@@ -110,6 +111,14 @@ function InvoicesPage() {
   const onSubmit = (data: Form) => setReview(data);
   const confirm = async () => {
     if (!review) return;
+    const blockReason = checkActionPolicies({
+      action: "Send",
+      network,
+      token: review.token,
+      amount: review.amount,
+      requireWallet: false,
+    });
+    if (blockReason) throw new Error(blockReason);
     const supabase = getOptionalSupabaseClient();
     if (!supabase) throw new Error("Supabase is not configured.");
 
