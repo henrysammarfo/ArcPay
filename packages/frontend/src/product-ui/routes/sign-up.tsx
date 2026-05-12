@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { Divider, Field, PasswordField, WalletConnectButton } from "@/components/auth/FormFields";
+import { getSupabaseAuthMessage } from "../../app/auth-errors";
 import { getOptionalSupabaseClient } from "../../app/supabase-client";
 import { ensureCurrentUserAccount } from "@/lib/account";
 
@@ -51,7 +52,7 @@ function SignUp() {
 
     if (error) {
       setStatus("error");
-      setMessage(error.message);
+      setMessage(getSupabaseAuthMessage(error));
       return;
     }
 
