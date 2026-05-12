@@ -12,15 +12,11 @@ export const Route = createFileRoute("/app/yield")({
 });
 
 const VAULTS = [
-  { id: "kamino-usdc", venue: "Kamino", token: "USDC", apy: 8.2, tvl: "$184M", min: 10, lock: "None", deposited: 48200, status: "active" as const },
-  { id: "kamino-pusd", venue: "Kamino", token: "PUSD", apy: 6.4, tvl: "$32M", min: 10, lock: "None", deposited: 0, status: "available" as const },
-  { id: "kamino-sol",  venue: "Kamino", token: "SOL",  apy: 5.1, tvl: "$220M", min: 0.1, lock: "None", deposited: 0, status: "available" as const },
-  { id: "lpagent-meteora", venue: "LP Agent · Meteora", token: "USDC/SOL", apy: 14.8, tvl: "$8M", min: 50, lock: "Variable", deposited: 0, status: "available" as const },
+  { id: "kamino-usdc", venue: "Kamino", token: "USDC", apy: null, tvl: "Live tx builder", min: 10, lock: "None", deposited: 0, status: "available" as const },
+  { id: "kamino-pusd", venue: "Kamino", token: "PUSD", apy: null, tvl: "Reserve required", min: 10, lock: "None", deposited: 0, status: "available" as const },
+  { id: "kamino-sol",  venue: "Kamino", token: "SOL",  apy: null, tvl: "Reserve required", min: 0.1, lock: "None", deposited: 0, status: "available" as const },
+  { id: "lpagent-meteora", venue: "LP Agent - Meteora", token: "USDC/SOL", apy: null, tvl: "Live positions", min: 0.01, lock: "Variable", deposited: 0, status: "available" as const },
 ];
-
-const APY_SERIES = [
-  7.1, 7.3, 7.6, 7.4, 7.8, 8.0, 7.7, 7.5, 7.9, 8.1, 7.8, 7.6, 7.9, 8.2,
-].map((apy, i) => ({ d: `D${i + 1}`, apy }));
 
 function YieldPage() {
   const wallet = useWallet();
@@ -89,16 +85,16 @@ function YieldPage() {
   };
 
   const num = parseFloat(amount) || 0;
-  const projDay = active ? (num * (active.apy / 100)) / 365 : 0;
+  const projDay = active?.apy ? (num * (active.apy / 100)) / 365 : 0;
 
   return (
     <div>
       <PageHeader icon={TrendingUp} eyebrow="Treasury intelligence" title="Yield" description="Sweep idle balances into Kamino vaults and LP Agent powered Meteora positions from one policy-controlled workspace." />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <StatCard icon={TrendingUp} label="Yield running" value="$48,200" hint="Across 1 vault" delta={{ value: "8.2% APY", direction: "up" }} emphasis />
-        <StatCard icon={Coins} label="Idle eligible" value="$11,304" hint="Sweep recommendation ready" />
-        <StatCard icon={Zap} label="Projected (30d)" value="$330" hint="At blended APY" />
+        <StatCard icon={TrendingUp} label="Yield running" value={lpPositionCount ?? "--"} hint="Live LP Agent positions" emphasis />
+        <StatCard icon={Coins} label="Idle eligible" value={wallet.connected ? "review" : "--"} hint={wallet.connected ? "Choose amount, then build provider tx" : "Connect wallet first"} />
+        <StatCard icon={Zap} label="Projected (30d)" value="--" hint="Shown after provider APY is returned" />
         <StatCard icon={Lock} label="LP Agent positions" value={lpPositionCount ?? "--"} hint={lpStatus === "loading" ? "Loading..." : lpMessage} />
       </div>
 
@@ -110,14 +106,14 @@ function YieldPage() {
         <div className="lg:col-span-2 rounded-2xl border border-border bg-card p-5">
           <div className="flex items-center justify-between mb-2">
             <div>
-              <div className="text-xs uppercase tracking-wider text-muted-foreground">14d blended APY</div>
-              <div className="text-2xl font-medium tracking-tight mt-1">7.6%</div>
+              <div className="text-xs uppercase tracking-wider text-muted-foreground">Provider status</div>
+              <div className="text-2xl font-medium tracking-tight mt-1">Provider quotes</div>
             </div>
-            <div className="text-xs text-muted-foreground">Source: strategy engine</div>
+            <div className="text-xs text-muted-foreground">Source: Kamino builder + LP Agent</div>
           </div>
           <div className="h-48">
               {mounted ? (
-                <YieldLineChart />
+                <ProviderStatus message={lpMessage} status={lpStatus} />
               ) : (
                 <div className="h-full rounded-xl bg-muted/40" />
               )}
@@ -125,8 +121,8 @@ function YieldPage() {
         </div>
         <div className="rounded-2xl border border-primary/30 bg-primary/5 p-5">
           <div className="text-xs uppercase tracking-wider text-primary mb-2">Suggested sweep</div>
-          <div className="text-2xl font-medium tracking-tight">$11,304 idle → Kamino USDC</div>
-          <p className="text-sm text-muted-foreground mt-2">~8.2% APY · no lock · withdraw anytime. Estimated +$2.54 / day.</p>
+          <div className="text-2xl font-medium tracking-tight">Build a Kamino USDC transaction</div>
+          <p className="text-sm text-muted-foreground mt-2">ArcPay calls the provider builder first. If the reserve, wallet, or amount is invalid, the real provider error is shown before signing.</p>
           <button onClick={() => open(VAULTS[0]!, "deposit")} className="mt-4 inline-flex items-center gap-2 bg-primary text-primary-foreground rounded-full px-4 py-2 text-sm font-medium hover:brightness-110">
             Review sweep <ExternalLink className="w-3.5 h-3.5" />
           </button>
@@ -143,7 +139,7 @@ function YieldPage() {
             <div key={v.id} className="grid grid-cols-12 gap-3 px-5 py-4 items-center text-sm hover:bg-muted/40">
               <div className="col-span-3 font-medium">{v.venue}</div>
               <div className="col-span-2"><span className="text-xs px-2 py-0.5 rounded-full bg-muted">{v.token}</span></div>
-              <div className="col-span-1 font-mono text-success">{v.apy}%</div>
+              <div className="col-span-1 font-mono text-success">{v.apy ? `${v.apy}%` : "--"}</div>
               <div className="col-span-2 text-muted-foreground">{v.tvl}</div>
               <div className="col-span-2 text-xs text-muted-foreground">{v.min} {v.token.split("/")[0]} · {v.lock}</div>
               <div className="col-span-2 text-right">
@@ -176,9 +172,9 @@ function YieldPage() {
               <input value={amount} onChange={(e) => setAmount(e.target.value)} type="number" step="0.01" placeholder="0.00" className="w-full bg-transparent text-3xl font-medium tracking-tight outline-none" />
             </div>
             <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
-              <Stat k="APY" v={`${active.apy}%`} />
+              <Stat k="APY" v={active.apy ? `${active.apy}%` : "provider"} />
               <Stat k="Min" v={`${active.min} ${active.token.split("/")[0]}`} />
-              <Stat k="Projected/day" v={`$${projDay.toFixed(2)}`} />
+              <Stat k="Projected/day" v={active.apy ? `$${projDay.toFixed(2)}` : "provider"} />
             </div>
             {num > 0 && num < active.min && <div className="mt-3 text-xs text-destructive">Below minimum deposit ({active.min} {active.token.split("/")[0]}).</div>}
             <button disabled={num < active.min} onClick={() => setReview(true)} className="mt-5 w-full bg-primary text-primary-foreground rounded-full py-3 font-medium hover:brightness-110 disabled:opacity-50">Review {mode}</button>
@@ -194,7 +190,7 @@ function YieldPage() {
         rows={active ? [
           { label: "Action", value: mode === "deposit" ? "Deposit" : "Withdraw" },
           { label: "Amount", value: `${num.toLocaleString()} ${active.token}`, mono: true },
-          { label: "APY", value: `${active.apy}%` },
+          { label: "APY", value: active.apy ? `${active.apy}%` : "Provider quote required" },
           { label: "Lock", value: active.lock },
           { label: "Network fee est.", value: "≈ 0.00012 SOL", mono: true },
         ] : []}
@@ -250,25 +246,14 @@ function Stat({ k, v }: { k: string; v: string }) {
   return <div className="rounded-lg bg-muted/60 p-2.5"><div className="text-[10px] uppercase tracking-wider text-muted-foreground">{k}</div><div className="text-sm font-medium font-mono mt-0.5">{v}</div></div>;
 }
 
-function YieldLineChart() {
-  const width = 760;
-  const height = 190;
-  const padX = 26;
-  const padY = 18;
-  const min = 5;
-  const max = 10;
-  const points = APY_SERIES.map((row, index) => {
-    const x = padX + (index / (APY_SERIES.length - 1)) * (width - padX * 2);
-    const y = height - padY - ((row.apy - min) / (max - min)) * (height - padY * 2);
-    return `${x},${y}`;
-  }).join(" ");
-
+function ProviderStatus({ message, status }: { message: string; status: "idle" | "loading" | "ready" | "error" }) {
   return (
-    <svg aria-label="14 day blended APY chart" className="h-full w-full" role="img" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
-      {[0.25, 0.5, 0.75].map((ratio) => (
-        <line key={ratio} x1={padX} x2={width - padX} y1={height * ratio} y2={height * ratio} stroke="oklch(0.9 0.01 80)" strokeDasharray="5 8" />
-      ))}
-      <polyline points={points} fill="none" stroke="oklch(0.71 0.18 47)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" />
-    </svg>
+    <div className="flex h-full flex-col justify-center rounded-2xl border border-border bg-muted/40 p-5">
+      <div className="text-sm font-medium capitalize">{status}</div>
+      <div className="mt-2 text-sm text-muted-foreground">{message}</div>
+      <div className="mt-4 text-xs text-muted-foreground">
+        Deposit and withdrawal buttons call the Kamino transaction builder. LP Agent reads positions from the connected wallet.
+      </div>
+    </div>
   );
 }
