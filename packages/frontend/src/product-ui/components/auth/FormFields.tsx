@@ -1,4 +1,4 @@
-import { useMemo, useState, type ComponentProps } from "react";
+import { useEffect, useMemo, useState, type ComponentProps } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useWallet } from "@solana/wallet-adapter-react";
@@ -59,6 +59,7 @@ export function WalletConnectButton({ redirectTo }: { redirectTo?: string }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [awaitingWalletSelection, setAwaitingWalletSelection] = useState(false);
 
   const label = useMemo(() => {
     if (loading) return "Verifying wallet...";
@@ -81,9 +82,12 @@ export function WalletConnectButton({ redirectTo }: { redirectTo?: string }) {
       setErrorMessage(null);
 
       if (!wallet.wallet) {
+        setAwaitingWalletSelection(true);
         setVisible(true);
         return;
       }
+
+      setAwaitingWalletSelection(false);
 
       if (!wallet.connected) {
         await wallet.connect();
@@ -150,6 +154,12 @@ export function WalletConnectButton({ redirectTo }: { redirectTo?: string }) {
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    if (awaitingWalletSelection && wallet.wallet && !loading) {
+      void connectAndSignIn();
+    }
+  }, [awaitingWalletSelection, loading, wallet.wallet]);
 
   return (
     <div className="space-y-2">
