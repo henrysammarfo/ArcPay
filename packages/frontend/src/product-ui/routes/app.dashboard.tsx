@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import { PublicKey } from "@solana/web3.js";
 import {
   AlertTriangle,
   ArrowDownLeft,
@@ -22,6 +22,8 @@ import { StatCard } from "@/components/primitives/StatCard";
 import { ensureCurrentUserAccount } from "@/lib/account";
 import { useNetwork } from "@/store/network";
 import { getOptionalSupabaseClient } from "../../app/supabase-client";
+
+const TOKEN_PROGRAM_ID = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
 
 export const Route = createFileRoute("/app/dashboard")({
   head: () => ({ meta: [{ title: "Overview - ArcPay" }] }),
