@@ -16,7 +16,10 @@ type TorqueBody = {
 export async function POST(request: Request) {
   const apiKey = process.env.TORQUE_API_KEY;
   if (!apiKey) {
-    return NextResponse.json({ error: "TORQUE_API_KEY is not configured on the server." }, { status: 503 });
+    return NextResponse.json({
+      status: "skipped",
+      reason: "TORQUE_API_KEY is not configured on the server.",
+    });
   }
 
   const body = (await request.json().catch(() => null)) as TorqueBody | null;

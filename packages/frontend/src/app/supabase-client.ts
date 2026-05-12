@@ -103,6 +103,7 @@ type ArcPayDatabase = {
           id: string;
           user_id: string;
           public_id: string;
+          network: "devnet" | "mainnet";
           amount: number;
           token: "USDC" | "AUDD" | "PUSD" | "SOL";
           memo: string;
@@ -116,6 +117,7 @@ type ArcPayDatabase = {
           id?: string;
           user_id: string;
           public_id?: string;
+          network?: "devnet" | "mainnet";
           amount: number;
           token: "USDC" | "AUDD" | "PUSD" | "SOL";
           memo?: string;

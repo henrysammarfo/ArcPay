@@ -19,15 +19,20 @@ export const Route = createFileRoute("/app/payments")({
 
 const TOKENS = ["USDC", "AUDD", "PUSD", "SOL"] as const;
 const TOKENS_BY_NETWORK = {
-  devnet: ["USDC", "AUDD", "SOL"],
-  mainnet: ["USDC", "PUSD", "SOL"],
+  devnet: ["USDC", "SOL"],
+  mainnet: ["USDC", "AUDD", "PUSD", "SOL"],
 } as const;
-const ROUTING = [
-  { id: "operating", label: "Operating wallet", desc: "Keep liquid for spend" },
-  { id: "shield", label: "Shielded sub-account", desc: "Cloak / Umbra route" },
-  { id: "yield", label: "Sweep to yield", desc: "LP Agent / Kamino route" },
-  { id: "swap", label: "Swap on receipt", desc: "Convert through DFlow" },
-] as const;
+const ROUTING_BY_NETWORK = {
+  devnet: [
+    { id: "operating", label: "Operating wallet", desc: "Keep liquid for devnet spend" },
+  ],
+  mainnet: [
+    { id: "operating", label: "Operating wallet", desc: "Keep liquid for spend" },
+    { id: "shield", label: "Shielded sub-account", desc: "Cloak / Umbra route" },
+    { id: "yield", label: "Sweep to yield", desc: "LP Agent / Kamino route" },
+    { id: "swap", label: "Swap on receipt", desc: "Convert through DFlow" },
+  ],
+} as const;
 
 const schema = z.object({
   amount: z.coerce.number({ invalid_type_error: "Enter an amount" }).positive("Amount must be positive").max(1_000_000, "Above policy daily cap"),
@@ -52,6 +57,7 @@ type RequestRow = {
 function PaymentsPage() {
   const network = useNetwork((state) => state.mode);
   const tokenOptions = TOKENS_BY_NETWORK[network];
+  const routeOptions = ROUTING_BY_NETWORK[network];
   const [items, setItems] = useState<RequestRow[]>([]);
   const [open, setOpen] = useState(false);
   const [review, setReview] = useState<Form | null>(null);
@@ -60,14 +66,25 @@ function PaymentsPage() {
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<Form>({
+  const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<Form>({
     resolver: zodResolver(schema),
     defaultValues: { token: "USDC", routeTo: "operating" },
   });
+  const selectedToken = watch("token");
+  const selectedRoute = watch("routeTo");
 
   useEffect(() => {
     void loadRequests();
-  }, []);
+  }, [network]);
+
+  useEffect(() => {
+    if (!tokenOptions.some((token) => token === selectedToken)) {
+      setValue("token", tokenOptions[0]);
+    }
+    if (!routeOptions.some((route) => route.id === selectedRoute)) {
+      setValue("routeTo", routeOptions[0].id);
+    }
+  }, [network, routeOptions, selectedRoute, selectedToken, setValue, tokenOptions]);
 
   async function loadRequests() {
     const supabase = getOptionalSupabaseClient();
@@ -87,6 +104,7 @@ function PaymentsPage() {
     const { data, error } = await supabase
       .from("arcpay_payment_requests")
       .select("*")
+      .eq("network", network)
       .order("created_at", { ascending: false });
     setLoading(false);
 
@@ -119,12 +137,13 @@ function PaymentsPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Sign in before creating payment requests.");
 
-    const route = ROUTING.find((item) => item.id === review.routeTo)?.label ?? "Operating wallet";
+    const route = routeOptions.find((item) => item.id === review.routeTo)?.label ?? "Operating wallet";
     const publicId = createRequestId();
     const paymentUrl = `${window.location.origin}/pay/${publicId}`;
     const { error } = await supabase.from("arcpay_payment_requests").insert({
       user_id: user.id,
       public_id: publicId,
+      network,
       amount: review.amount,
       token: review.token,
       memo: review.memo ?? "",
@@ -139,18 +158,18 @@ function PaymentsPage() {
       amountUsd: review.amount,
       eventName: "arcpay_paid_agent_request",
       proofType: "frontend_payment_request",
-      source: "arcpay-payments",
+      source: `arcpay-payments-${network}`,
     });
 
     await loadRequests();
     setMessage(
       torque.ok
         ? "Payment request saved, pay-link generated, and Torque event submitted."
-        : `Payment request saved, but Torque event failed: ${torque.error}`,
+        : `Payment request saved. ${torque.error}`,
     );
     setReview(null);
     setOpen(false);
-    reset({ token: "USDC", routeTo: "operating" });
+    reset({ token: tokenOptions[0], routeTo: routeOptions[0].id });
   };
 
   const filtered = useMemo(
@@ -162,8 +181,9 @@ function PaymentsPage() {
 
   const reviewRows: ReviewRow[] = review ? [
     { label: "Amount", value: `${review.amount.toLocaleString()} ${review.token}`, mono: true },
-    { label: "Route", value: ROUTING.find((item) => item.id === review.routeTo)?.label ?? "Operating wallet" },
+    { label: "Route", value: routeOptions.find((item) => item.id === review.routeTo)?.label ?? "Operating wallet" },
     { label: "Memo", value: review.memo || "None" },
+    { label: "Network", value: network },
     { label: "Stored pay-link", value: "Supabase", mono: true },
   ] : [];
 
@@ -262,7 +282,7 @@ function PaymentsPage() {
               <div>
                 <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Route on receipt</label>
                 <div className="mt-2 grid grid-cols-1 gap-2">
-                  {ROUTING.map((route) => (
+                  {routeOptions.map((route) => (
                     <label key={route.id} className="flex cursor-pointer items-start gap-3 rounded-xl border border-border p-3 hover:border-primary/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5">
                       <input type="radio" value={route.id} {...register("routeTo")} className="mt-1 accent-primary" />
                       <div>
@@ -276,7 +296,7 @@ function PaymentsPage() {
 
               <div className="flex items-start gap-2 rounded-xl bg-muted p-3 text-xs text-muted-foreground">
                 <Zap className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
-                Pay-link is saved on confirm. QuickNode webhook can update settlement status when funds arrive.
+                Pay-link is saved on confirm. Settlement stays pending until a real payment or webhook update arrives.
               </div>
             </div>
 
@@ -327,7 +347,10 @@ async function submitTorqueEvent(payload: {
       headers: { "content-type": "application/json" },
       body: JSON.stringify(payload),
     });
-    const body = (await response.json()) as { error?: string };
+    const body = (await response.json()) as { error?: string; status?: string; reason?: string };
+    if (body.status === "skipped") {
+      return { ok: false, error: body.reason ?? "Torque event skipped." };
+    }
     if (!response.ok || body.error) {
       throw new Error(body.error ?? `HTTP ${response.status}`);
     }

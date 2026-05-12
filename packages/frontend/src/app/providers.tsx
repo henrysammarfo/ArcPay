@@ -59,8 +59,8 @@ function WalletConnectionProvider({ children }: { readonly children: ReactNode }
   }, []);
 
   return (
-    <ConnectionProvider endpoint={endpoint} key={`${network}:${endpoint}`}>
-      <WalletProvider wallets={wallets} autoConnect={false} onError={handleWalletError}>
+    <ConnectionProvider endpoint={endpoint}>
+      <WalletProvider wallets={wallets} autoConnect onError={handleWalletError}>
         <WalletModalProvider>{children}</WalletModalProvider>
       </WalletProvider>
     </ConnectionProvider>
