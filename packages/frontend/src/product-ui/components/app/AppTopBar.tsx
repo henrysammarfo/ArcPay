@@ -75,21 +75,29 @@ export function AppTopBar() {
     let cancelled = false;
 
     async function linkWallet() {
-      const { data } = await client.auth.getUser();
+      const [{ data }, { data: sessionData }] = await Promise.all([
+        client.auth.getUser(),
+        client.auth.getSession(),
+      ]);
       const user = data.user;
       if (!user || cancelled) return;
 
-      await client
-        .from("user_profiles")
-        .upsert(
-          {
-            user_id: user.id,
-            notification_email: user.email ?? "",
-            linked_wallet_address: walletAddress,
-            wallet_label: "Operations wallet",
-          },
-          { onConflict: "user_id" },
-        );
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) return;
+
+      const response = await fetch("/api/wallet-auth/link", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          accessToken,
+          walletAddress,
+        }),
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json()) as { error?: string };
+        console.warn(payload.error ?? "Wallet link request failed.");
+      }
     }
 
     void linkWallet();

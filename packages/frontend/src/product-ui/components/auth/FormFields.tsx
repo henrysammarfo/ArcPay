@@ -1,7 +1,10 @@
-import { useEffect, useState, type ComponentProps } from "react";
+import { useMemo, useState, type ComponentProps } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useWalletConnectAction } from "@/hooks/use-wallet-connect-action";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { useWalletModal } from "@solana/wallet-adapter-react-ui";
+import { ensureCurrentUserAccount } from "@/lib/account";
+import { getOptionalSupabaseClient } from "../../../app/supabase-client";
 
 export function Field({
   label,
@@ -51,37 +54,129 @@ export function PasswordField({
 }
 
 export function WalletConnectButton({ redirectTo }: { redirectTo?: string }) {
-  const walletAction = useWalletConnectAction();
+  const wallet = useWallet();
+  const { setVisible } = useWalletModal();
   const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (redirectTo && walletAction.connected && walletAction.publicKeyBase58) {
-      router.replace(redirectTo);
+  const label = useMemo(() => {
+    if (loading) return "Verifying wallet...";
+    if (wallet.connected && wallet.publicKey) {
+      const address = wallet.publicKey.toBase58();
+      return `${address.slice(0, 4)}...${address.slice(-4)}`;
     }
-  }, [redirectTo, router, walletAction.connected, walletAction.publicKeyBase58]);
+    return wallet.wallet?.adapter.name ? `Continue with ${wallet.wallet.adapter.name}` : "Connect Solana wallet";
+  }, [loading, wallet.connected, wallet.publicKey, wallet.wallet]);
+
+  async function connectAndSignIn() {
+    const supabase = getOptionalSupabaseClient();
+    if (!supabase) {
+      setErrorMessage("Supabase auth is not configured for this frontend runtime.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setErrorMessage(null);
+
+      if (!wallet.wallet) {
+        setVisible(true);
+        return;
+      }
+
+      if (!wallet.connected) {
+        await wallet.connect();
+      }
+
+      const publicKey = wallet.publicKey?.toBase58();
+      if (!publicKey) {
+        throw new Error("Wallet did not expose a public key after connect.");
+      }
+
+      if (!wallet.signMessage) {
+        throw new Error("This wallet does not support message signing for wallet auth.");
+      }
+
+      const challengeResponse = await fetch("/api/wallet-auth/challenge", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ walletAddress: publicKey }),
+      });
+      const challengeBody = (await challengeResponse.json()) as {
+        challengeToken?: string;
+        error?: string;
+        message?: string;
+      };
+      if (!challengeResponse.ok || !challengeBody.challengeToken || !challengeBody.message) {
+        throw new Error(challengeBody.error ?? "Unable to request wallet auth challenge.");
+      }
+
+      const messageBytes = new TextEncoder().encode(challengeBody.message);
+      const signatureBytes = await wallet.signMessage(messageBytes);
+      const verifyResponse = await fetch("/api/wallet-auth/verify", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          challengeToken: challengeBody.challengeToken,
+          signature: bytesToBase64(signatureBytes),
+          walletAddress: publicKey,
+        }),
+      });
+      const verifyBody = (await verifyResponse.json()) as {
+        error?: string;
+        session?: {
+          access_token: string;
+          refresh_token: string;
+        };
+      };
+      if (!verifyResponse.ok || !verifyBody.session) {
+        throw new Error(verifyBody.error ?? "Wallet sign-in failed.");
+      }
+
+      const { error: sessionError } = await supabase.auth.setSession(verifyBody.session);
+      if (sessionError) {
+        throw sessionError;
+      }
+
+      await ensureCurrentUserAccount(supabase);
+
+      if (redirectTo) {
+        router.replace(redirectTo);
+      }
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Wallet sign-in failed.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <div className="space-y-2">
       <button
         type="button"
-        onClick={() => void walletAction.connectWallet()}
-        disabled={walletAction.connecting}
+        onClick={() => void connectAndSignIn()}
+        disabled={loading}
         className="w-full h-12 bg-foreground text-background rounded-xl flex items-center justify-center gap-2 font-semibold hover:opacity-90 transition-opacity disabled:opacity-60"
       >
         <span className="w-2 h-2 rounded-full bg-primary" />
-        {walletAction.connected && walletAction.publicKeyBase58
-          ? walletAction.label
-          : walletAction.label === "Connect"
-            ? "Connect Solana wallet"
-            : walletAction.label}
+        {label}
       </button>
-      {walletAction.errorMessage && (
+      {errorMessage && (
         <div className="rounded-xl border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-          {walletAction.errorMessage}
+          {errorMessage}
         </div>
       )}
     </div>
   );
+}
+
+function bytesToBase64(value: Uint8Array) {
+  let binary = "";
+  for (const byte of value) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary);
 }
 
 export function Divider({ label = "Or with email" }: { label?: string }) {

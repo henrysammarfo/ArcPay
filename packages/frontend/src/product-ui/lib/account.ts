@@ -19,10 +19,12 @@ export async function ensureCurrentUserAccount(supabase: SupabaseClient): Promis
   const metadataName = [firstName, lastName].filter(Boolean).join(" ").trim();
   const fallbackName = metadataName || readMetadataString(metadata.name) || user.email?.split("@")[0] || "ArcPay operator";
   const workspaceName = readMetadataString(metadata.workspace) || "Multi-agent agency";
+  const walletAddress = readMetadataString(metadata.wallet_address);
+  const notificationEmail = isWalletAuthEmail(user.email) ? "" : user.email ?? "";
 
   const { data: profile } = await supabase
     .from("user_profiles")
-    .select("display_name, notification_email")
+    .select("display_name, notification_email, linked_wallet_address")
     .eq("user_id", user.id)
     .maybeSingle();
 
@@ -31,7 +33,18 @@ export async function ensureCurrentUserAccount(supabase: SupabaseClient): Promis
       {
         user_id: user.id,
         display_name: fallbackName,
-        notification_email: user.email ?? "",
+        notification_email: notificationEmail,
+        linked_wallet_address: walletAddress || null,
+      },
+      { onConflict: "user_id" },
+    );
+  } else if (!profile.linked_wallet_address && walletAddress) {
+    await supabase.from("user_profiles").upsert(
+      {
+        user_id: user.id,
+        display_name: profile.display_name || fallbackName,
+        notification_email: profile.notification_email || notificationEmail,
+        linked_wallet_address: walletAddress,
       },
       { onConflict: "user_id" },
     );
@@ -62,4 +75,8 @@ export async function ensureCurrentUserAccount(supabase: SupabaseClient): Promis
 
 function readMetadataString(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function isWalletAuthEmail(value: string | null | undefined) {
+  return Boolean(value && value.endsWith("@arcpay.local"));
 }

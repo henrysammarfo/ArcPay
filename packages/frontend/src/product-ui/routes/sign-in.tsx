@@ -50,13 +50,13 @@ function SignIn() {
   return (
     <AuthShell
       heading="Welcome back."
-      subheading="Connect your wallet, or sign in with email and we'll prompt for the wallet on the next step."
+      subheading="Wallet sign-in automatically creates or resumes the wallet account. Email sign-in only works if you already created an email login."
     >
       <div>
         <h1 className="text-3xl font-medium tracking-tight" style={{ letterSpacing: "-0.03em" }}>
           Sign in
         </h1>
-        <p className="text-muted-foreground text-sm mt-1.5">Pick a method.</p>
+        <p className="text-muted-foreground text-sm mt-1.5">Use wallet first, or use email only if that email account already exists.</p>
       </div>
 
       <WalletConnectButton redirectTo="/app/dashboard" />

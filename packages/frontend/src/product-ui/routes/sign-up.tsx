@@ -81,7 +81,7 @@ function SignUp() {
         <h1 className="text-3xl font-medium tracking-tight" style={{ letterSpacing: "-0.03em" }}>
           Create your workspace
         </h1>
-        <p className="text-muted-foreground text-sm mt-1.5">Wallet first, email backup.</p>
+        <p className="text-muted-foreground text-sm mt-1.5">Wallet sign-in can create the account automatically. Use this form only when you want email to be the primary login now.</p>
       </div>
 
       <WalletConnectButton redirectTo="/app/dashboard" />

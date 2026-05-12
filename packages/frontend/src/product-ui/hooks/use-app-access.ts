@@ -39,7 +39,7 @@ export function useAppAccess() {
   }, []);
 
   const walletConnected = Boolean(wallet.connected && wallet.publicKey);
-  const canOpenApp = signedIn || walletConnected;
+  const canOpenApp = signedIn;
 
   return {
     canOpenApp,

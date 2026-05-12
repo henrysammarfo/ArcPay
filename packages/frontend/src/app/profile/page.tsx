@@ -15,6 +15,8 @@ type ProfileForm = {
   notificationEmail: string;
   walletLabel: string;
   linkedWalletAddress: string;
+  loginEmail: string;
+  loginPassword: string;
 };
 
 const EMPTY_PROFILE: ProfileForm = {
@@ -23,6 +25,8 @@ const EMPTY_PROFILE: ProfileForm = {
   notificationEmail: "",
   walletLabel: "Operations wallet",
   linkedWalletAddress: "",
+  loginEmail: "",
+  loginPassword: "",
 };
 
 export default function ProfilePage() {
@@ -30,7 +34,9 @@ export default function ProfilePage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
   const [status, setStatus] = useState("Sign in to sync this profile across devices.");
+  const [authStatus, setAuthStatus] = useState("");
   const [saving, setSaving] = useState(false);
+  const [authSaving, setAuthSaving] = useState(false);
   const wallet = useWallet();
   const walletAction = useWalletConnectAction();
   const walletAddress = wallet.publicKey?.toBase58() ?? "";
@@ -72,9 +78,11 @@ export default function ProfilePage() {
       setProfile({
         displayName: row?.display_name ?? "",
         role: row?.role ?? "Founder / finance lead",
-        notificationEmail: row?.notification_email || user.email || "",
+        notificationEmail: row?.notification_email || (isWalletAuthEmail(user.email) ? "" : user.email || ""),
         walletLabel: row?.wallet_label || "Operations wallet",
         linkedWalletAddress: row?.linked_wallet_address ?? walletAddress,
+        loginEmail: isWalletAuthEmail(user.email) ? "" : user.email ?? "",
+        loginPassword: "",
       });
       setStatus("Profile loaded.");
     }
@@ -130,6 +138,40 @@ export default function ProfilePage() {
       linkedWalletAddress: linkedWalletAddress ?? "",
     }));
     setStatus("Profile saved. Wallet link and operator details are synced.");
+  }
+
+  async function saveLoginIdentity() {
+    const supabase = getOptionalSupabaseClient();
+    if (!supabase) {
+      setAuthStatus("Supabase env is not configured in this frontend runtime.");
+      return;
+    }
+
+    if (!profile.loginEmail.trim()) {
+      setAuthStatus("Enter a login email to link email sign-in.");
+      return;
+    }
+
+    if (profile.loginPassword.trim().length < 8) {
+      setAuthStatus("Set a login password with at least 8 characters.");
+      return;
+    }
+
+    setAuthSaving(true);
+    const { error } = await supabase.auth.updateUser({
+      email: profile.loginEmail.trim(),
+      password: profile.loginPassword,
+    });
+    setAuthSaving(false);
+
+    if (error) {
+      setAuthStatus(error.message);
+      return;
+    }
+
+    setEmail(profile.loginEmail.trim());
+    setProfile((current) => ({ ...current, loginPassword: "" }));
+    setAuthStatus("Login email updated. Check your inbox if Supabase requires email confirmation.");
   }
 
   return (
@@ -206,6 +248,44 @@ export default function ProfilePage() {
             <Row label="Session status" value={walletAddress ? "Wallet linked" : "Wallet gated"} />
           </div>
         </div>
+
+        <div className="lg:col-span-3 rounded-2xl border border-border bg-card p-5">
+          <div className="text-sm font-medium">Login methods</div>
+          <div className="text-xs text-muted-foreground mt-0.5 mb-5">
+            Wallet sign-in creates an ArcPay account automatically. Add an email and password here if you also want email login on the same account.
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Field
+              label="Login email"
+              type="email"
+              value={profile.loginEmail}
+              onChange={(e) => update("loginEmail", e.target.value)}
+              placeholder="founder@company.com"
+            />
+            <Field
+              label="Login password"
+              type="password"
+              value={profile.loginPassword}
+              onChange={(e) => update("loginPassword", e.target.value)}
+              placeholder="At least 8 characters"
+            />
+          </div>
+
+          <div className="mt-5 flex flex-wrap items-center gap-3">
+            <button
+              className="bg-primary text-primary-foreground rounded-full px-5 py-2.5 text-sm font-medium hover:brightness-110 disabled:opacity-50"
+              disabled={authSaving}
+              onClick={() => void saveLoginIdentity()}
+              type="button"
+            >
+              {authSaving ? "Linking..." : "Link email login"}
+            </button>
+            <span className="text-xs text-muted-foreground">
+              {authStatus || (isWalletAuthEmail(email) ? "Wallet-only account detected." : "Email login already linked or ready to update.")}
+            </span>
+          </div>
+        </div>
       </div>
     </ProductAppShell>
   );
@@ -233,4 +313,8 @@ function Row({ label, value }: { readonly label: string; readonly value: string 
       <span className="font-medium">{value}</span>
     </div>
   );
+}
+
+function isWalletAuthEmail(value: string | null | undefined) {
+  return Boolean(value && value.endsWith("@arcpay.local"));
 }

@@ -22,7 +22,7 @@ function Onboard() {
   return (
     <AuthShell
       heading="Enter ArcPay."
-      subheading="Create a workspace with email, connect a wallet first, or sign in with an existing account."
+      subheading="Connect a wallet to create or resume your ArcPay account automatically, or use email if you already signed up."
       steps={[
         { n: 1, t: "Connect wallet or email" },
         { n: 2, t: "Create workspace" },
@@ -35,13 +35,13 @@ function Onboard() {
           Start with wallet or email
         </h1>
         <p className="text-muted-foreground text-sm mt-1.5">
-          Wallet-only access opens live balances. Email access syncs workspace data across devices.
+          Wallet sign-in creates or resumes one ArcPay account per wallet. Email sign-up stays separate unless you link it later from Profile.
         </p>
       </div>
 
       <WalletConnectButton redirectTo="/app/dashboard" />
 
-      {access.walletConnected && (
+      {access.signedIn && (
         <Link
           to="/app/dashboard"
           className="flex h-12 items-center justify-center gap-2 rounded-xl bg-primary font-semibold text-primary-foreground hover:brightness-110"
