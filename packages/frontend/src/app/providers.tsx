@@ -1,6 +1,7 @@
 "use client";
 
 import { ConnectionProvider, WalletProvider } from "@solana/wallet-adapter-react";
+import { PhantomWalletAdapter } from "@solana/wallet-adapter-phantom";
 import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
 import { SolflareWalletAdapter } from "@solana/wallet-adapter-solflare";
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
@@ -10,6 +11,10 @@ import "@solana/wallet-adapter-react-ui/styles.css";
 
 type WalletProviderProps = Parameters<typeof WalletProvider>[0];
 type WalletAdapter = NonNullable<WalletProviderProps["wallets"]>[number];
+type PersistState = {
+  hasHydrated?: () => boolean;
+  onFinishHydration?: (callback: () => void) => () => void;
+};
 
 export function Providers({ children }: { readonly children: ReactNode }) {
   return (
@@ -20,15 +25,16 @@ export function Providers({ children }: { readonly children: ReactNode }) {
 }
 
 function WalletConnectionProvider({ children }: { readonly children: ReactNode }) {
+  const persist = (useNetwork as typeof useNetwork & { persist?: PersistState }).persist;
   const network = useNetwork((state) => state.mode);
+  const [hydrated, setHydrated] = useState(() => persist?.hasHydrated?.() ?? true);
   const endpoint =
     network === "mainnet"
       ? process.env.NEXT_PUBLIC_MAINNET_RPC_URL ?? "https://api.mainnet-beta.solana.com"
       : process.env.NEXT_PUBLIC_QUICKNODE_RPC_URL ?? "https://api.devnet.solana.com";
-  const [phantomWallet, setPhantomWallet] = useState<WalletAdapter | null>(null);
   const wallets = useMemo(
-    () => [new SolflareWalletAdapter(), ...(phantomWallet ? [phantomWallet] : [])],
-    [phantomWallet],
+    () => [new SolflareWalletAdapter(), new PhantomWalletAdapter()] satisfies WalletAdapter[],
+    [],
   );
   const handleWalletError = useCallback((error: unknown) => {
     const message = error instanceof Error ? error.message : String(error);
@@ -37,26 +43,23 @@ function WalletConnectionProvider({ children }: { readonly children: ReactNode }
   }, []);
 
   useEffect(() => {
-    let mounted = true;
-
-    async function loadPhantomWallet(): Promise<void> {
-      try {
-        const { PhantomWalletAdapter } = await import("@solana/wallet-adapter-phantom");
-
-        if (mounted) {
-          setPhantomWallet(new PhantomWalletAdapter());
-        }
-      } catch (error) {
-        console.warn("Unable to load Phantom wallet adapter.", error);
-      }
+    if (!persist) {
+      setHydrated(true);
+      return;
     }
 
-    void loadPhantomWallet();
+    if (persist.hasHydrated?.()) {
+      setHydrated(true);
+      return;
+    }
 
-    return () => {
-      mounted = false;
-    };
-  }, []);
+    const unsubscribe = persist.onFinishHydration?.(() => setHydrated(true));
+    return () => unsubscribe?.();
+  }, [persist]);
+
+  if (!hydrated) {
+    return null;
+  }
 
   return (
     <ConnectionProvider endpoint={endpoint}>
