@@ -1,5 +1,6 @@
-import { useState, type ComponentProps } from "react";
+import { useEffect, useState, type ComponentProps } from "react";
 import { Eye, EyeOff } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useWalletConnectAction } from "@/hooks/use-wallet-connect-action";
 
 export function Field({
@@ -49,8 +50,15 @@ export function PasswordField({
   );
 }
 
-export function WalletConnectButton() {
+export function WalletConnectButton({ redirectTo }: { redirectTo?: string }) {
   const walletAction = useWalletConnectAction();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (redirectTo && walletAction.connected && walletAction.publicKeyBase58) {
+      router.replace(redirectTo);
+    }
+  }, [redirectTo, router, walletAction.connected, walletAction.publicKeyBase58]);
 
   return (
     <div className="space-y-2">

@@ -39,7 +39,7 @@ function Onboard() {
         </p>
       </div>
 
-      <WalletConnectButton />
+      <WalletConnectButton redirectTo="/app/dashboard" />
 
       {access.walletConnected && (
         <Link

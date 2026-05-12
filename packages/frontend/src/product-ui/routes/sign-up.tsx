@@ -84,7 +84,7 @@ function SignUp() {
         <p className="text-muted-foreground text-sm mt-1.5">Wallet first, email backup.</p>
       </div>
 
-      <WalletConnectButton />
+      <WalletConnectButton redirectTo="/app/dashboard" />
       <Divider />
 
       <form className="space-y-4" onSubmit={submit}>

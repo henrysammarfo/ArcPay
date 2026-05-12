@@ -59,7 +59,7 @@ function SignIn() {
         <p className="text-muted-foreground text-sm mt-1.5">Pick a method.</p>
       </div>
 
-      <WalletConnectButton />
+      <WalletConnectButton redirectTo="/app/dashboard" />
       <Divider />
 
       <form className="space-y-4" onSubmit={submit}>
