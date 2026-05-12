@@ -2,9 +2,12 @@
 
 import { createFileRoute } from "@tanstack/react-router";
 import { Ban, Loader2, Search, Shield, ShieldAlert, ShieldCheck, Sparkles } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/app/PageHeader";
 import { StatCard } from "@/components/primitives/StatCard";
+import { readCachedJson, writeCachedJson } from "@/lib/browser-cache";
+import { loadSavedPolicySettings } from "@/lib/policy";
+import { useNetwork } from "@/store/network";
 
 type RiskLookup = {
   wallet: string;
@@ -21,11 +24,28 @@ export const Route = createFileRoute("/app/risk")({
 });
 
 function RiskPage() {
-  const [query, setQuery] = useState("");
-  const [lookup, setLookup] = useState<RiskLookup | null>(null);
-  const [history, setHistory] = useState<RiskLookup[]>([]);
+  const network = useNetwork((state) => state.mode);
+  const cacheKey = `arcpay-risk-${network}`;
+  const cached = readCachedJson(cacheKey, { query: "", lookup: null as RiskLookup | null, history: [] as RiskLookup[] });
+  const minScore = loadSavedPolicySettings()?.minScore ?? 70;
+  const [query, setQuery] = useState(cached.query);
+  const [lookup, setLookup] = useState<RiskLookup | null>(cached.lookup);
+  const [history, setHistory] = useState<RiskLookup[]>(cached.history);
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    const next = readCachedJson(cacheKey, { query: "", lookup: null as RiskLookup | null, history: [] as RiskLookup[] });
+    setQuery(next.query);
+    setLookup(next.lookup);
+    setHistory(next.history);
+    setStatus("idle");
+    setError("");
+  }, [cacheKey]);
+
+  useEffect(() => {
+    writeCachedJson(cacheKey, { query, lookup, history });
+  }, [cacheKey, history, lookup, query]);
 
   async function runLookup() {
     const wallet = query.trim();
@@ -78,7 +98,7 @@ function RiskPage() {
         <StatCard icon={ShieldCheck} label="Approved" value={approved} hint="Live lookups this session" />
         <StatCard icon={Shield} label="Review queue" value={review} hint="Requires operator review" />
         <StatCard icon={Ban} label="Rejected" value={rejected} hint="Blocked by policy" />
-        <StatCard icon={Sparkles} label="Min GoldRush" value="70" hint="Current policy floor" />
+        <StatCard icon={Sparkles} label="Min GoldRush" value={minScore} hint="Current policy floor" />
       </div>
 
       <div className="mb-4 rounded-2xl bg-surface-dark p-6 text-surface-dark-foreground">

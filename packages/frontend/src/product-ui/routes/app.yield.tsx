@@ -5,6 +5,8 @@ import { TrendingUp, Coins, Lock, Zap, ExternalLink } from "lucide-react";
 import { PageHeader } from "@/components/app/PageHeader";
 import { ReviewModal } from "@/components/primitives/ReviewModal";
 import { StatCard } from "@/components/primitives/StatCard";
+import { checkActionPolicies } from "@/lib/policy";
+import { useNetwork } from "@/store/network";
 
 export const Route = createFileRoute("/app/yield")({
   head: () => ({ meta: [{ title: "Yield — ArcPay" }] }),
@@ -19,6 +21,7 @@ const VAULTS = [
 ];
 
 function YieldPage() {
+  const network = useNetwork((state) => state.mode);
   const wallet = useWallet();
   const [active, setActive] = useState<typeof VAULTS[number] | null>(null);
   const [amount, setAmount] = useState("");
@@ -204,6 +207,18 @@ function YieldPage() {
   async function buildYieldTransaction() {
     if (!active) return;
     if (!num || num < active.min) throw new Error(`Below minimum ${active.min} ${active.token.split("/")[0]}.`);
+
+    const blockReason = checkActionPolicies({
+      action: mode === "deposit" ? "Yield deposit" : "Yield withdraw",
+      network,
+      token: active.token.split("/")[0],
+      amount: num,
+      walletConnected: Boolean(wallet.connected && wallet.publicKey),
+    });
+    if (blockReason) {
+      setActionMessage(blockReason);
+      throw new Error(blockReason);
+    }
 
     if (active.venue.startsWith("LP Agent")) {
       setActionMessage("LP Agent positions are live. Zap-In needs a selected Meteora pool id before a transaction can be built.");

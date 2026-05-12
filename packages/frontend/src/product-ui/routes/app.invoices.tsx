@@ -19,8 +19,8 @@ export const Route = createFileRoute("/app/invoices")({
 
 const TOKENS = ["USDC", "AUDD", "PUSD", "SOL"] as const;
 const TOKENS_BY_NETWORK = {
-  devnet: ["USDC", "AUDD", "SOL"],
-  mainnet: ["USDC", "PUSD", "SOL"],
+  devnet: ["USDC", "SOL"],
+  mainnet: ["USDC", "AUDD", "PUSD", "SOL"],
 } as const;
 
 const schema = z.object({
@@ -63,7 +63,7 @@ function InvoicesPage() {
 
   useEffect(() => {
     void loadInvoices();
-  }, []);
+  }, [network]);
 
   async function loadInvoices() {
     const supabase = getOptionalSupabaseClient();
@@ -83,6 +83,7 @@ function InvoicesPage() {
     const { data, error } = await supabase
       .from("arcpay_invoices")
       .select("*")
+      .eq("network", network)
       .order("created_at", { ascending: false });
     setLoading(false);
 
@@ -120,6 +121,7 @@ function InvoicesPage() {
     const { error } = await supabase.from("arcpay_invoices").insert({
       user_id: user.id,
       public_id: publicId,
+      network,
       client: review.client,
       email: review.email,
       amount: review.amount,
@@ -136,7 +138,7 @@ function InvoicesPage() {
     setMessage("Invoice saved and pay-link generated.");
     setReview(null);
     setOpen(false);
-    reset({ token: "USDC" });
+    reset({ token: tokenOptions[0] });
   };
 
   async function copyLink(invoice: Invoice) {

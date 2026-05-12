@@ -1,8 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useWallet } from "@solana/wallet-adapter-react";
 import { useEffect, useMemo, useState } from "react";
 import { Download, ExternalLink, Eye, EyeOff, KeyRound, ScrollText, Search } from "lucide-react";
 import { PageHeader } from "@/components/app/PageHeader";
 import { StatCard } from "@/components/primitives/StatCard";
+import { readCachedJson, writeCachedJson } from "@/lib/browser-cache";
+import { checkActionPolicies } from "@/lib/policy";
 import { useNetwork } from "@/store/network";
 import { getOptionalSupabaseClient } from "../../app/supabase-client";
 
@@ -23,17 +26,23 @@ type Entry = {
 
 function AuditPage() {
   const network = useNetwork((state) => state.mode);
+  const wallet = useWallet();
+  const cacheKey = `arcpay-audit-${network}`;
   const [reveal, setReveal] = useState(false);
   const [from, setFrom] = useState(() => dateOffset(-14));
   const [to, setTo] = useState(() => dateOffset(0));
   const [query, setQuery] = useState("");
-  const [entries, setEntries] = useState<Entry[]>([]);
+  const [entries, setEntries] = useState<Entry[]>(() => readCachedJson(cacheKey, [] as Entry[]));
   const [message, setMessage] = useState("Sign in to load audit records.");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     void loadAudit();
   }, [network]);
+
+  useEffect(() => {
+    writeCachedJson(cacheKey, entries);
+  }, [cacheKey, entries]);
 
   const filtered = useMemo(() => {
     const search = query.trim().toLowerCase();
@@ -61,9 +70,9 @@ function AuditPage() {
 
     setLoading(true);
     const [payments, invoices, privacy] = await Promise.all([
-      supabase.from("arcpay_payment_requests").select("*").order("created_at", { ascending: false }).limit(100),
-      supabase.from("arcpay_invoices").select("*").order("created_at", { ascending: false }).limit(100),
-      supabase.from("arcpay_privacy_events").select("*").order("created_at", { ascending: false }).limit(100),
+      supabase.from("arcpay_payment_requests").select("*").eq("network", network).order("created_at", { ascending: false }).limit(100),
+      supabase.from("arcpay_invoices").select("*").eq("network", network).order("created_at", { ascending: false }).limit(100),
+      supabase.from("arcpay_privacy_events").select("*").eq("network", network).order("created_at", { ascending: false }).limit(100),
     ]);
     setLoading(false);
 
@@ -111,6 +120,15 @@ function AuditPage() {
   }
 
   async function createViewingKey() {
+    const blockReason = checkActionPolicies({
+      action: "Issue viewing key",
+      network,
+      walletConnected: Boolean(wallet.connected && wallet.publicKey),
+    });
+    if (blockReason) {
+      setMessage(blockReason);
+      return;
+    }
     const supabase = getOptionalSupabaseClient();
     if (!supabase) {
       setMessage("Supabase is not configured for viewing-key records.");
@@ -124,6 +142,7 @@ function AuditPage() {
 
     const { error } = await supabase.from("arcpay_privacy_events").insert({
       user_id: user.id,
+      network,
       action: "viewing_key",
       provider: "ArcPay selective disclosure",
       recipient_name: "Workspace auditor",

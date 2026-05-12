@@ -5,6 +5,11 @@ import { PageHeader } from "@/components/app/PageHeader";
 import { useNetwork } from "@/store/network";
 import { getOptionalSupabaseClient } from "../../app/supabase-client";
 import { ensureCurrentUserAccount } from "@/lib/account";
+import {
+  DEFAULT_WORKSPACE_SETTINGS,
+  saveWorkspaceSettingsSnapshot,
+  WORKSPACE_SETTINGS_STORAGE_KEY,
+} from "@/lib/policy";
 
 export const Route = createFileRoute("/app/settings")({
   head: () => ({ meta: [{ title: "Settings - ArcPay" }] }),
@@ -51,6 +56,26 @@ function SettingsPage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(WORKSPACE_SETTINGS_STORAGE_KEY);
+      if (raw) {
+        const cached = JSON.parse(raw) as Partial<{
+          requireWalletForActions: boolean;
+          emailNotifications: boolean;
+          riskAlerts: boolean;
+          autoYieldSweeps: boolean;
+          defaultNetwork: "devnet" | "mainnet";
+        }>;
+        if (typeof cached.emailNotifications === "boolean") setEmailNotifications(cached.emailNotifications);
+        if (typeof cached.riskAlerts === "boolean") setRiskAlerts(cached.riskAlerts);
+        if (typeof cached.autoYieldSweeps === "boolean") setAutoYieldSweeps(cached.autoYieldSweeps);
+        if (typeof cached.requireWalletForActions === "boolean") setRequireWallet(cached.requireWalletForActions);
+        if (cached.defaultNetwork === "devnet" || cached.defaultNetwork === "mainnet") setNetwork(cached.defaultNetwork);
+      }
+    } catch {
+      saveWorkspaceSettingsSnapshot(DEFAULT_WORKSPACE_SETTINGS);
+    }
+
     const supabase = getOptionalSupabaseClient();
     let mounted = true;
 
@@ -91,6 +116,13 @@ function SettingsPage() {
         setAutoYieldSweeps(data.auto_yield_sweeps);
         setRequireWallet(data.require_wallet_for_actions);
         setIntegrations({ ...DEFAULT_INTEGRATIONS, ...data.enabled_integrations });
+        saveWorkspaceSettingsSnapshot({
+          requireWalletForActions: data.require_wallet_for_actions,
+          emailNotifications: data.email_notifications,
+          riskAlerts: data.risk_alerts,
+          autoYieldSweeps: data.auto_yield_sweeps,
+          defaultNetwork: data.default_network,
+        });
         setStatus("Settings loaded.");
       } else {
         setStatus("Default settings created for this workspace.");
@@ -139,6 +171,13 @@ function SettingsPage() {
       return;
     }
 
+    saveWorkspaceSettingsSnapshot({
+      requireWalletForActions: requireWallet,
+      emailNotifications,
+      riskAlerts,
+      autoYieldSweeps,
+      defaultNetwork: network,
+    });
     setStatus("Settings saved. Workspace preferences are synced.");
   }
 

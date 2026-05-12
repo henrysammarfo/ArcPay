@@ -3,6 +3,13 @@ import { useEffect, useState } from "react";
 import { Plus, Power, Save, SlidersHorizontal, X } from "lucide-react";
 import { PageHeader } from "@/components/app/PageHeader";
 import { getSupabaseClient } from "../../app/supabase-client";
+import {
+  DEFAULT_POLICY_SETTINGS,
+  POLICY_STORAGE_KEY,
+  parsePolicySettings,
+  type PolicySettings,
+  savePolicySettings,
+} from "@/lib/policy";
 
 export const Route = createFileRoute("/app/policies")({
   head: () => ({ meta: [{ title: "Policies - ArcPay" }] }),
@@ -12,52 +19,6 @@ export const Route = createFileRoute("/app/policies")({
 const TOKENS = ["USDC", "AUDD", "PUSD", "SOL", "USDT"] as const;
 const NETWORKS = ["Mainnet", "Devnet"] as const;
 const ACTIONS = ["Send", "Swap", "Yield deposit", "Yield withdraw", "Shield", "Issue viewing key"] as const;
-const POLICY_STORAGE_KEY = "arcpay-policy-settings";
-
-type PolicySettings = {
-  allowlist: string[];
-  blocked: string[];
-  daily: number;
-  minScore: number;
-  networks: string[];
-  paused: boolean;
-  perTx: number;
-  requireApproval: number;
-  tokens: string[];
-};
-
-const DEFAULT_POLICY_SETTINGS: PolicySettings = {
-  allowlist: [],
-  blocked: [],
-  daily: 0,
-  minScore: 60,
-  networks: ["Devnet"],
-  paused: false,
-  perTx: 0,
-  requireApproval: 0,
-  tokens: ["USDC"],
-};
-
-function parsePolicySettings(value: unknown): PolicySettings | null {
-  if (!value || typeof value !== "object") return null;
-
-  const raw = value as Partial<PolicySettings>;
-
-  return {
-    allowlist: Array.isArray(raw.allowlist) ? raw.allowlist.map(String) : DEFAULT_POLICY_SETTINGS.allowlist,
-    blocked: Array.isArray(raw.blocked) ? raw.blocked.map(String) : DEFAULT_POLICY_SETTINGS.blocked,
-    daily: Number.isFinite(raw.daily) ? Number(raw.daily) : DEFAULT_POLICY_SETTINGS.daily,
-    minScore: Number.isFinite(raw.minScore) ? Number(raw.minScore) : DEFAULT_POLICY_SETTINGS.minScore,
-    networks: Array.isArray(raw.networks) ? raw.networks.map(String) : DEFAULT_POLICY_SETTINGS.networks,
-    paused: Boolean(raw.paused),
-    perTx: Number.isFinite(raw.perTx) ? Number(raw.perTx) : DEFAULT_POLICY_SETTINGS.perTx,
-    requireApproval: Number.isFinite(raw.requireApproval)
-      ? Number(raw.requireApproval)
-      : DEFAULT_POLICY_SETTINGS.requireApproval,
-    tokens: Array.isArray(raw.tokens) ? raw.tokens.map(String) : DEFAULT_POLICY_SETTINGS.tokens,
-  };
-}
-
 function PoliciesPage() {
   const [paused, setPaused] = useState(DEFAULT_POLICY_SETTINGS.paused);
   const [daily, setDaily] = useState(DEFAULT_POLICY_SETTINGS.daily);
@@ -160,7 +121,7 @@ function PoliciesPage() {
     setSaveState("loading");
     setSaveMessage("");
 
-    localStorage.setItem(POLICY_STORAGE_KEY, JSON.stringify(settings));
+    savePolicySettings(settings);
 
     try {
       const supabase = getSupabaseClient();

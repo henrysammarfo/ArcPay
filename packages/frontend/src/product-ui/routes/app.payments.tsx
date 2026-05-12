@@ -1,6 +1,7 @@
 "use client";
 
 import { createFileRoute } from "@tanstack/react-router";
+import { useWallet } from "@solana/wallet-adapter-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Check, Copy, ExternalLink, Plus, Search, Send, Zap } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -10,6 +11,8 @@ import { getOptionalSupabaseClient } from "../../app/supabase-client";
 import { PageHeader } from "@/components/app/PageHeader";
 import { ReviewModal, type ReviewRow } from "@/components/primitives/ReviewModal";
 import { StatCard } from "@/components/primitives/StatCard";
+import { readCachedJson, writeCachedJson } from "@/lib/browser-cache";
+import { checkActionPolicies } from "@/lib/policy";
 import { useNetwork } from "@/store/network";
 
 export const Route = createFileRoute("/app/payments")({
@@ -56,9 +59,11 @@ type RequestRow = {
 
 function PaymentsPage() {
   const network = useNetwork((state) => state.mode);
+  const wallet = useWallet();
   const tokenOptions = TOKENS_BY_NETWORK[network];
   const routeOptions = ROUTING_BY_NETWORK[network];
-  const [items, setItems] = useState<RequestRow[]>([]);
+  const cacheKey = `arcpay-payments-${network}`;
+  const [items, setItems] = useState<RequestRow[]>(() => readCachedJson(cacheKey, [] as RequestRow[]));
   const [open, setOpen] = useState(false);
   const [review, setReview] = useState<Form | null>(null);
   const [query, setQuery] = useState("");
@@ -76,6 +81,10 @@ function PaymentsPage() {
   useEffect(() => {
     void loadRequests();
   }, [network]);
+
+  useEffect(() => {
+    writeCachedJson(cacheKey, items);
+  }, [cacheKey, items]);
 
   useEffect(() => {
     if (!tokenOptions.some((token) => token === selectedToken)) {
@@ -131,6 +140,14 @@ function PaymentsPage() {
 
   const confirm = async () => {
     if (!review) return;
+    const blockReason = checkActionPolicies({
+      action: "Send",
+      network,
+      token: review.token,
+      amount: review.amount,
+      walletConnected: Boolean(wallet.connected && wallet.publicKey),
+    });
+    if (blockReason) throw new Error(blockReason);
     const supabase = getOptionalSupabaseClient();
     if (!supabase) throw new Error("Supabase is not configured.");
 

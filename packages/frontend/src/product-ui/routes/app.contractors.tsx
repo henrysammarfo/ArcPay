@@ -1,12 +1,16 @@
 "use client";
 
 import { createFileRoute } from "@tanstack/react-router";
+import { useWallet } from "@solana/wallet-adapter-react";
 import { Plus, Search, Send, ShieldAlert, ShieldCheck, Users } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { getOptionalSupabaseClient } from "../../app/supabase-client";
 import { PageHeader } from "@/components/app/PageHeader";
 import { ReviewModal } from "@/components/primitives/ReviewModal";
 import { StatCard } from "@/components/primitives/StatCard";
+import { readCachedJson, writeCachedJson } from "@/lib/browser-cache";
+import { checkActionPolicies } from "@/lib/policy";
+import { useNetwork } from "@/store/network";
 
 export const Route = createFileRoute("/app/contractors")({
   head: () => ({ meta: [{ title: "Contractors - ArcPay" }] }),
@@ -33,20 +37,25 @@ type RiskResponse = {
 };
 
 function ContractorsPage() {
-  const [items, setItems] = useState<Contractor[]>([]);
+  const network = useNetwork((state) => state.mode);
+  const wallet = useWallet();
+  const cacheKey = `arcpay-contractors-${network}`;
+  const currencyOptions = network === "devnet" ? (["USDC", "SOL"] as const) : (["USDC", "AUDD", "PUSD", "SOL"] as const);
+  const [items, setItems] = useState<Contractor[]>(() => readCachedJson(cacheKey, [] as Contractor[]));
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [review, setReview] = useState(false);
   const [name, setName] = useState("");
-  const [wallet, setWallet] = useState("");
+  const [walletInput, setWalletInput] = useState("");
   const [currency, setCurrency] = useState<Contractor["currency"]>("USDC");
   const [message, setMessage] = useState("Sign in to load contractors.");
   const [loading, setLoading] = useState(false);
   const [scoringId, setScoringId] = useState<string | null>(null);
 
   useEffect(() => {
+    setCurrency(currencyOptions[0]);
     void loadContractors();
-  }, []);
+  }, [cacheKey, network]);
 
   async function loadContractors() {
     const supabase = getOptionalSupabaseClient();
@@ -66,6 +75,7 @@ function ContractorsPage() {
     const { data, error } = await supabase
       .from("arcpay_contractors")
       .select("*")
+      .eq("network", network)
       .order("created_at", { ascending: false });
     setLoading(false);
 
@@ -74,7 +84,7 @@ function ContractorsPage() {
       return;
     }
 
-    setItems((data ?? []).map((row) => ({
+    const nextItems = (data ?? []).map((row) => ({
       id: row.id,
       name: row.name,
       wallet: row.wallet,
@@ -85,7 +95,9 @@ function ContractorsPage() {
       paid30: Number(row.paid_30),
       privateRoute: row.private_route,
       selected: false,
-    })));
+    }));
+    setItems(nextItems);
+    writeCachedJson(cacheKey, nextItems);
     setMessage("Contractors loaded from Supabase.");
   }
 
@@ -103,7 +115,7 @@ function ContractorsPage() {
   };
 
   async function add() {
-    if (!name.trim() || !wallet.trim()) return;
+    if (!name.trim() || !walletInput.trim()) return;
     const supabase = getOptionalSupabaseClient();
     if (!supabase) {
       setMessage("Supabase is not configured.");
@@ -117,8 +129,9 @@ function ContractorsPage() {
 
     const { data, error } = await supabase.from("arcpay_contractors").insert({
       user_id: user.id,
+      network,
       name: name.trim(),
-      wallet: wallet.trim(),
+      wallet: walletInput.trim(),
       currency,
       risk_status: "unscored",
       risk_reasons: [],
@@ -131,8 +144,8 @@ function ContractorsPage() {
     }
 
     setName("");
-    setWallet("");
-    setCurrency("USDC");
+    setWalletInput("");
+    setCurrency(currencyOptions[0]);
     setOpen(false);
     await loadContractors();
     if (data) await scoreContractor(data.id, data.wallet);
@@ -174,6 +187,18 @@ function ContractorsPage() {
   }
 
   const confirm = async () => {
+    const blockReason = checkActionPolicies({
+      action: "Send",
+      network,
+      token: "USDC",
+      amount: total,
+      counterpartyWallets: selected.map((item) => item.wallet),
+      minObservedScore: selected.length ? Math.min(...selected.map((item) => item.risk || 0)) : null,
+      walletConnected: Boolean(wallet.connected && wallet.publicKey),
+    });
+    if (blockReason) {
+      throw new Error(blockReason);
+    }
     setItems((prev) => prev.map((item) => ({ ...item, selected: false })));
     setMessage("Batch payroll prepared. Final payout still requires wallet signature through privacy/payment route.");
   };
@@ -184,7 +209,7 @@ function ContractorsPage() {
         icon={Users}
         eyebrow="Treasury"
         title="Contractors"
-        description="Persist recipients, score wallets with GoldRush, and prepare policy-gated payroll batches."
+        description={`Persist ${network} recipients, score wallets with GoldRush, and prepare policy-gated payroll batches.`}
         actions={
           <>
             <button onClick={() => setOpen(true)} className="inline-flex items-center gap-2 rounded-full bg-muted px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted/70">
@@ -253,9 +278,9 @@ function ContractorsPage() {
             <h2 className="mb-4 text-xl font-medium tracking-tight" style={{ letterSpacing: "-0.02em" }}>Add contractor</h2>
             <div className="space-y-3">
               <input value={name} onChange={(event) => setName(event.target.value)} placeholder="Full name" className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring" />
-              <input value={wallet} onChange={(event) => setWallet(event.target.value)} placeholder="Solana wallet address" className="w-full rounded-xl border border-border bg-background px-3 py-2.5 font-mono text-sm outline-none focus:ring-2 focus:ring-ring" />
+              <input value={walletInput} onChange={(event) => setWalletInput(event.target.value)} placeholder="Solana wallet address" className="w-full rounded-xl border border-border bg-background px-3 py-2.5 font-mono text-sm outline-none focus:ring-2 focus:ring-ring" />
               <select value={currency} onChange={(event) => setCurrency(event.target.value as Contractor["currency"])} className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none">
-                <option>USDC</option><option>AUDD</option><option>PUSD</option><option>SOL</option>
+                {currencyOptions.map((option) => <option key={option}>{option}</option>)}
               </select>
             </div>
             <div className="mt-5 flex justify-end gap-2">

@@ -135,6 +135,7 @@ type ArcPayDatabase = {
           id: string;
           user_id: string;
           public_id: string;
+          network: "devnet" | "mainnet";
           client: string;
           email: string;
           amount: number;
@@ -150,6 +151,7 @@ type ArcPayDatabase = {
           id?: string;
           user_id: string;
           public_id?: string;
+          network?: "devnet" | "mainnet";
           client: string;
           email: string;
           amount: number;
@@ -168,6 +170,7 @@ type ArcPayDatabase = {
         Row: {
           id: string;
           user_id: string;
+          network: "devnet" | "mainnet";
           name: string;
           wallet: string;
           currency: "USDC" | "AUDD" | "PUSD" | "SOL";
@@ -182,6 +185,7 @@ type ArcPayDatabase = {
         Insert: {
           id?: string;
           user_id: string;
+          network?: "devnet" | "mainnet";
           name: string;
           wallet: string;
           currency?: "USDC" | "AUDD" | "PUSD" | "SOL";
@@ -200,6 +204,7 @@ type ArcPayDatabase = {
         Row: {
           id: string;
           user_id: string;
+          network: "devnet" | "mainnet";
           action: "shield" | "viewing_key";
           provider: string;
           amount: number | null;
@@ -215,6 +220,7 @@ type ArcPayDatabase = {
         Insert: {
           id?: string;
           user_id: string;
+          network?: "devnet" | "mainnet";
           action: "shield" | "viewing_key";
           provider: string;
           amount?: number | null;

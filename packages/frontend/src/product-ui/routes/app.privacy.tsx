@@ -8,6 +8,8 @@ import { getOptionalSupabaseClient } from "../../app/supabase-client";
 import { PageHeader } from "@/components/app/PageHeader";
 import { ReviewModal } from "@/components/primitives/ReviewModal";
 import { StatCard } from "@/components/primitives/StatCard";
+import { readCachedJson, writeCachedJson } from "@/lib/browser-cache";
+import { checkActionPolicies } from "@/lib/policy";
 import { useNetwork, type NetworkMode } from "@/store/network";
 
 export const Route = createFileRoute("/app/privacy")({
@@ -45,7 +47,8 @@ type PrivacyEvent = {
 function PrivacyPage() {
   const wallet = useWallet();
   const network = useNetwork((state) => state.mode);
-  const [events, setEvents] = useState<PrivacyEvent[]>([]);
+  const cacheKey = `arcpay-privacy-${network}`;
+  const [events, setEvents] = useState<PrivacyEvent[]>(() => readCachedJson(cacheKey, [] as PrivacyEvent[]));
   const [shieldOpen, setShieldOpen] = useState(false);
   const [shieldAmt, setShieldAmt] = useState("");
   const [shieldRoute, setShieldRoute] = useState("cloak");
@@ -61,7 +64,11 @@ function PrivacyPage() {
 
   useEffect(() => {
     void loadEvents();
-  }, []);
+  }, [cacheKey, network]);
+
+  useEffect(() => {
+    writeCachedJson(cacheKey, events);
+  }, [cacheKey, events]);
 
   useEffect(() => {
     if (!visibleRoutes.some((route) => route.id === shieldRoute)) {
@@ -86,6 +93,7 @@ function PrivacyPage() {
     const { data, error } = await supabase
       .from("arcpay_privacy_events")
       .select("*")
+      .eq("network", network)
       .order("created_at", { ascending: false });
     setLoading(false);
 
@@ -112,6 +120,14 @@ function PrivacyPage() {
   async function createShieldEvent() {
     const amount = Number.parseFloat(shieldAmt);
     if (!Number.isFinite(amount) || amount <= 0) throw new Error("Enter a positive shield amount.");
+    const blockReason = checkActionPolicies({
+      action: "Shield",
+      network,
+      token: "USDC",
+      amount,
+      walletConnected: Boolean(wallet.connected && wallet.publicKey),
+    });
+    if (blockReason) throw new Error(blockReason);
     const supabase = getOptionalSupabaseClient();
     if (!supabase) throw new Error("Supabase is not configured.");
     const { data: { user } } = await supabase.auth.getUser();
@@ -123,6 +139,7 @@ function PrivacyPage() {
     const providerResult = await callPrivacyProvider(shieldRoute, amount, wallet.publicKey?.toBase58());
     const { error } = await supabase.from("arcpay_privacy_events").insert({
       user_id: user.id,
+      network,
       action: "shield",
       provider,
       amount,
@@ -137,6 +154,12 @@ function PrivacyPage() {
   }
 
   async function createViewingKeyEvent() {
+    const blockReason = checkActionPolicies({
+      action: "Issue viewing key",
+      network,
+      walletConnected: Boolean(wallet.connected && wallet.publicKey),
+    });
+    if (blockReason) throw new Error(blockReason);
     const supabase = getOptionalSupabaseClient();
     if (!supabase) throw new Error("Supabase is not configured.");
     const { data: { user } } = await supabase.auth.getUser();
@@ -144,6 +167,7 @@ function PrivacyPage() {
 
     const { error } = await supabase.from("arcpay_privacy_events").insert({
       user_id: user.id,
+      network,
       action: "viewing_key",
       provider: "ArcPay selective disclosure",
       recipient_name: keyName,

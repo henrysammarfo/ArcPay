@@ -7,6 +7,8 @@ import { ArrowLeftRight, ChevronDown, Info, Loader2, ShieldCheck, Zap } from "lu
 import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/app/PageHeader";
 import { ReviewModal } from "@/components/primitives/ReviewModal";
+import { checkActionPolicies } from "@/lib/policy";
+import { useNetwork } from "@/store/network";
 
 export const Route = createFileRoute("/app/swaps")({
   head: () => ({ meta: [{ title: "Swaps - ArcPay" }] }),
@@ -38,6 +40,7 @@ type DFlowQuote = {
 };
 
 function SwapsPage() {
+  const network = useNetwork((state) => state.mode);
   const wallet = useWallet();
   const { connection } = useConnection();
   const [from, setFrom] = useState<Token>("USDC");
@@ -66,6 +69,19 @@ function SwapsPage() {
 
   async function requestQuote() {
     if (!canQuote) return;
+
+    const blockReason = checkActionPolicies({
+      action: "Swap",
+      network,
+      token: from,
+      amount: num,
+      walletConnected: Boolean(wallet.connected && wallet.publicKey),
+    });
+    if (blockReason) {
+      setQuoteStatus("error");
+      setMessage(blockReason);
+      return;
+    }
 
     setQuoteStatus("loading");
     setMessage("Requesting live DFlow order quote...");
@@ -105,6 +121,18 @@ function SwapsPage() {
   }
 
   async function signAndSubmit() {
+    const blockReason = checkActionPolicies({
+      action: "Swap",
+      network,
+      token: from,
+      amount: num,
+      walletConnected: Boolean(wallet.connected && wallet.publicKey),
+    });
+    if (blockReason) {
+      setMessage(blockReason);
+      throw new Error(blockReason);
+    }
+
     if (!quote?.transaction) {
       setMessage("No signable DFlow transaction returned. Connect wallet and refresh quote.");
       throw new Error("No signable DFlow transaction.");
