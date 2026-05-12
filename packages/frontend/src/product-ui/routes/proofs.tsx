@@ -28,7 +28,7 @@ type ProofRow = {
 };
 
 const ROWS: ProofRow[] = [
-  { provider: "QuickNode", surface: "RPC + webhook", status: "devnet", note: "Backend exposes live webhook proof status for the selected network.", networks: ["devnet", "mainnet"], endpoint: "/api/quicknode", autoCheck: true },
+  { provider: "QuickNode", surface: "RPC + webhook", status: "devnet", note: "Backend exposes live webhook proof status for devnet.", networks: ["devnet"], endpoint: "/api/quicknode", autoCheck: true },
   { provider: "MagicBlock", surface: "Private Payments", status: "needs wallet", note: "Live route requires a connected wallet owner. Use Privacy -> Prepare shield to build the Private Payments transaction.", networks: ["devnet"], endpoint: "/api/magicblock" },
   { provider: "Torque", surface: "Custom events", status: "devnet", note: "Payment creation submits custom_events through Torque when server env is configured.", networks: ["devnet", "mainnet"], endpoint: "/api/torque" },
   { provider: "GoldRush", surface: "Counterparty risk", status: "live", note: "Risk page calls the server-side GoldRush endpoint.", networks: ["devnet", "mainnet"] },
