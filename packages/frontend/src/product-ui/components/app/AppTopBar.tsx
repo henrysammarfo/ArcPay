@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Bell, Search, Wallet, ChevronDown, Building2, UserRound, Settings, LogOut, ShieldCheck } from "lucide-react";
 import { useWallet } from "@solana/wallet-adapter-react";
@@ -18,6 +19,7 @@ import { useWalletConnectAction } from "@/hooks/use-wallet-connect-action";
 import { ensureCurrentUserAccount } from "@/lib/account";
 
 export function AppTopBar() {
+  const router = useRouter();
   const mode = useNetwork((s) => s.mode);
   const setMode = useNetwork((s) => s.setMode);
   const [openCmd, setOpenCmd] = useState(false);
@@ -103,6 +105,12 @@ export function AppTopBar() {
     setEmail(null);
     setDisplayName("");
     setWorkspaceName("Multi-agent agency");
+    router.push("/");
+  }
+
+  async function disconnectWallet() {
+    if (wallet.connected) await wallet.disconnect();
+    if (!email) router.push("/");
   }
 
   return (
@@ -191,6 +199,11 @@ export function AppTopBar() {
               <Link to="/policies"><ShieldCheck className="w-4 h-4" /> Policies</Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
+            {wallet.connected && (
+              <DropdownMenuItem onSelect={() => void disconnectWallet()}>
+                <Wallet className="w-4 h-4" /> Disconnect wallet
+              </DropdownMenuItem>
+            )}
             {email ? (
               <DropdownMenuItem onSelect={() => void signOut()}>
                 <LogOut className="w-4 h-4" /> Sign out

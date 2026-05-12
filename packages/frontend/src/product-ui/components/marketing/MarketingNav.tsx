@@ -1,13 +1,17 @@
+"use client";
+
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
 import { LogoIcon } from "@/components/brand/LogoIcon";
 import { NAV_LINKS } from "@/lib/marketing";
+import { useAppAccess } from "@/hooks/use-app-access";
 
 type Props = { tone?: "light" | "dark"; absolute?: boolean };
 
 export function MarketingNav({ tone = "dark", absolute = false }: Props) {
   const [open, setOpen] = useState(false);
+  const access = useAppAccess();
   const isDark = tone === "dark";
   const link = isDark ? "text-white/75 hover:text-white" : "text-foreground/70 hover:text-foreground";
   const wordmark = isDark ? "text-white" : "text-foreground";
@@ -40,14 +44,16 @@ export function MarketingNav({ tone = "dark", absolute = false }: Props) {
           ))}
         </div>
         <div className="hidden md:flex items-center gap-3">
+          {!access.canOpenApp && (
+            <Link
+              to="/sign-in"
+              className={`${link} text-sm font-medium transition-colors`}
+            >
+              Sign in
+            </Link>
+          )}
           <Link
-            to="/sign-in"
-            className={`${link} text-sm font-medium transition-colors`}
-          >
-            Sign in
-          </Link>
-          <Link
-            to="/app/dashboard"
+            to={access.openAppPath}
             className={`${cta} text-sm font-medium px-5 py-2.5 rounded-full transition-colors`}
           >
             Open App
@@ -69,8 +75,8 @@ export function MarketingNav({ tone = "dark", absolute = false }: Props) {
               {l.label}
             </Link>
           ))}
-          <Link to="/sign-in" className="text-foreground/80 text-sm font-medium">Sign in</Link>
-          <Link to="/app/dashboard" className="bg-foreground text-background text-sm font-medium px-5 py-2.5 rounded-full text-center">
+          {!access.canOpenApp && <Link to="/sign-in" className="text-foreground/80 text-sm font-medium">Sign in</Link>}
+          <Link to={access.openAppPath} className="bg-foreground text-background text-sm font-medium px-5 py-2.5 rounded-full text-center">
             Open App
           </Link>
         </div>

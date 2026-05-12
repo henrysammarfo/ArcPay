@@ -2,8 +2,11 @@ import { ArrowRight } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { MarketingNav } from "../MarketingNav";
 import { HERO_VIDEO_URL, PARTNERS } from "@/lib/marketing";
+import { useAppAccess } from "@/hooks/use-app-access";
 
 export function Hero() {
+  const access = useAppAccess();
+
   return (
     <section className="relative bg-background">
       <div className="h-screen flex flex-col overflow-hidden">
@@ -43,20 +46,22 @@ export function Hero() {
               </p>
               <div className="flex flex-wrap items-center gap-3">
                 <Link
-                  to="/sign-up"
+                  to={access.canOpenApp ? "/app/dashboard" : "/onboard"}
                   className="inline-flex items-center gap-3 bg-white text-black text-base md:text-lg font-medium pl-6 pr-1.5 py-1.5 rounded-full hover:bg-white/90 transition-colors"
                 >
-                  <span>Join the beta</span>
+                  <span>{access.canOpenApp ? "Open App" : "Join the beta"}</span>
                   <span className="bg-black rounded-full p-2.5 inline-flex items-center justify-center">
                     <ArrowRight className="w-4 h-4 text-white" />
                   </span>
                 </Link>
-                <Link
-                  to="/sign-in"
-                  className="inline-flex items-center gap-2 text-white/85 hover:text-white text-sm md:text-base font-medium px-5 py-2.5 rounded-full border border-white/20 hover:border-white/40 transition-colors"
-                >
-                  Sign in
-                </Link>
+                {!access.canOpenApp && (
+                  <Link
+                    to="/sign-in"
+                    className="inline-flex items-center gap-2 text-white/85 hover:text-white text-sm md:text-base font-medium px-5 py-2.5 rounded-full border border-white/20 hover:border-white/40 transition-colors"
+                  >
+                    Sign in
+                  </Link>
+                )}
               </div>
 
               {/* Marquee */}
